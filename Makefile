@@ -5,8 +5,8 @@ SHELL=/bin/sh
 CFLAGS=-O2 -Wall -Werror -g -DUSE_ASSERT
 LDFLAGS=-O2 -g -lz
 
-logmerge: logmerge.o mymalloc.o
-	$(CC) -o $@ logmerge.o mymalloc.o $(LDFLAGS)
+logmerge: logmerge.o
+	$(CC) -o $@ logmerge.o $(LDFLAGS)
 
 logmerge.o: logmerge.c logmerge.h
 
