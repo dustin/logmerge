@@ -100,8 +100,8 @@ static int openLogfile(struct logfile *lf)
 	lf->gzBuf=calloc(1, GZBUFFER);
 	assert(lf->gzBuf != NULL);
 
-	lf->gzBufCur;
-	lf->gzBufEnd;
+	lf->gzBufCur=NULL;
+	lf->gzBufEnd=NULL;
 
 	return(rv);
 }
