@@ -1,12 +1,16 @@
 /*
  * Copyright (c) 2002  Dustin Sallings <dustin@spy.net>
  *
- * $Id: logmerge.c,v 1.10 2003/10/06 19:03:44 dustin Exp $
+ * $Id: logmerge.c,v 1.10 2005/03/28 19:10:39 dustin Exp $
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif /* HAVE_ALLOCA_H */
 #include <ctype.h>
 #include <time.h>
 #include <sys/time.h>
@@ -21,12 +25,52 @@
 #include <zlib.h>
 
 #include "logmerge.h"
+
+#ifdef MYMALLOC
 #include "mymalloc.h"
+#endif
+
+#define NOTREACHED 0
 
 #define strdupa(d, s) { \
-	d=alloca(strlen(s)+1);\
+	int strdupaStrlen=strlen(s); \
+	d=alloca(strdupaStrlen+1);\
 	assert(d!=NULL); \
-	memcpy(d, s, strlen(s)+1); \
+	memcpy(d, s, strdupaStrlen+1); \
+}
+
+static char *myGzgets(struct logfile *lf)
+{
+	char *rv=lf->line;
+	int s=LINE_BUFFER;
+	int bytesRead=0;
+
+	for(;;) {
+		if(lf->gzBufCur > lf->gzBufEnd || lf->gzBufEnd == NULL) {
+			/* Fetch some more stuff */
+			bytesRead=gzread(lf->input, lf->gzBuf, GZBUFFER);
+			lf->gzBufEnd=bytesRead + lf->gzBuf - 1;
+			/* Make sure we got something */
+			if(bytesRead == 0) {
+				return(NULL);
+			}
+			lf->gzBufCur=lf->gzBuf;
+		}
+		/* Make sure we do not get too many characters */
+		if(--s > 0) {
+			*rv++ = *lf->gzBufCur;
+			if(*(lf->gzBufCur++) == '\n') {
+				*rv=0x00;
+				return(rv);
+			}
+		} else {
+			*rv=0x00;
+			return(rv);
+		}
+	}
+
+	assert(NOTREACHED);
+	return(rv);
 }
 
 /**
@@ -48,6 +92,17 @@ static int openLogfile(struct logfile *lf)
 		rv=OK;
 	}
 
+	/* Allocate the line buffer */
+	lf->line=calloc(1, LINE_BUFFER);
+	assert(lf->line != NULL);
+
+	/* Allocate the read buffer */
+	lf->gzBuf=calloc(1, GZBUFFER);
+	assert(lf->gzBuf != NULL);
+
+	lf->gzBufCur;
+	lf->gzBufEnd;
+
 	return(rv);
 }
 
@@ -55,6 +110,11 @@ static int openLogfile(struct logfile *lf)
 static int parseMonth(char *s)
 {
 	int rv=-1;
+
+	assert(s != NULL);
+	assert(s[0] != 0x00);
+	assert(s[1] != 0x00);
+	assert(s[2] != 0x00);
 
 	if(strncmp(s, "Jan", 3)==0) {
 		rv=0;
@@ -85,6 +145,137 @@ static int parseMonth(char *s)
 	return(rv);
 }
 
+/* Convert a line from the old format to CLF */
+static int unfsckLine(struct logfile *lf)
+{
+	char *start=NULL, *end=NULL;
+	char *line=NULL;
+	char tsbuf[32];
+	char *timestamp=NULL, *ip=NULL, *request=NULL, *status=NULL,
+		*size=NULL, *refer=NULL, *ua=NULL;
+	char *format=NULL;
+	int rv=ERROR;
+
+	assert(lf != NULL);
+	assert(lf->line != NULL);
+
+	strdupa(line, lf->line);
+	assert(line!=NULL);
+
+	/* Start at the timestamp */
+	start=line;
+	end=index(start, ' ');
+	assert(end != NULL);
+	timestamp=NULL;
+	/* XXX:  Hack, should deal with other timezones */
+	if(lf->tm.tm_isdst) {
+		format="%d/%h/%Y:%T -0700";
+	} else {
+		format="%d/%h/%Y:%T -0800";
+	}
+	/* OK, just going to use the existing timestamp and format it properly */
+	strftime(tsbuf, sizeof(tsbuf), format, &lf->tm);
+	/*
+	fprintf(stderr, "** Timestamp is ``[%s]''\n", tsbuf);
+	*/
+
+	/* Seek to the IP address */
+	start=end+1;
+	end=index(start, ' ');
+	assert(end != NULL);
+	assert(*end == ' ');
+	*end=0x00;
+	strdupa(ip, start);
+	/*
+	fprintf(stderr, "** IP is ``%s''\n", ip);
+	*/
+
+	/* Seek to the - */
+	start=end+1;
+	assert(start[0] == '-');
+	end=index(start, ' ');
+	assert(end != NULL);
+
+	/* Seek to the request */
+	start=end+1;
+	assert(start[0] == '\"');
+	end=index(start+1, '\"');
+	assert(end != NULL);
+	/* If there's an embedded quote, keep seeking */
+	while( !(end[1]==' ' && isdigit(end[2])) ) {
+		end=index(end+1, '\"');
+		assert(end);
+	}
+	end++; /* The quote is part of what we want */
+	assert(*end == ' ');
+	*end=0x00;
+	strdupa(request, start);
+	/*
+	fprintf(stderr, "** Request is ``%s''\n", request);
+	*/
+
+	/* Seek to the status */
+	start=end+1;
+	end=index(start, ' ');
+	assert(end != NULL);
+	assert(*end == ' ');
+	*end=0x00;
+	strdupa(status, start);
+	/*
+	fprintf(stderr, "** Status is ``%s''\n", status);
+	*/
+
+	/* Seek to the size */
+	start=end+1;
+	end=index(start, ' ');
+	assert(end != NULL);
+	assert(*end == ' ');
+	*end=0x00;
+	strdupa(size, start);
+	/*
+	fprintf(stderr, "** Size is ``%s''\n", size);
+	*/
+
+	/* Seek to the referer */
+	start=end+1;
+	assert(start[0] == '\"');
+	end=index(start+1, '\"');
+	assert(end != NULL);
+	/* If there's an embedded quote, keep seeking */
+	while( !(end[1]==' ' && end[2]=='\"') ) {
+		end=index(end+1, '\"');
+		assert(end);
+	}
+	end++; /* The quote is part of what we want */
+	assert(*end == ' ');
+	*end=0x00;
+	strdupa(refer, start);
+	/*
+	fprintf(stderr, "** Referer is ``%s''\n", refer);
+	*/
+
+	/* Seek to the user agent */
+	start=end+1;
+	assert(start[0] == '\"');
+	end=index(start+1, '\n');
+	assert(end != NULL);
+	assert(*end == '\n');
+	*end=0x00;
+	strdupa(ua, start);
+	/*
+	fprintf(stderr, "** User Agent is ``%s''\n", ua);
+	*/
+
+	/* Put it back.  We're going to use sprintf and an assertion here
+	 * because I do use systems that don't support snprintf and don't feel
+	 * like including one. */
+	sprintf(lf->line, "%s - - [%s] %s %s %s %s %s\n",
+		ip, tsbuf, request, status, size, refer, ua);
+	assert(strlen(lf->line) < LINE_BUFFER);
+
+	return(rv);
+}
+
 static time_t parseTimestamp(struct logfile *lf)
 {
 	char *p;
@@ -102,12 +293,35 @@ static time_t parseTimestamp(struct logfile *lf)
 	if(strlen(p) < 32) {
 		/* This is a broken entry */
 		fprintf(stderr, "Broken log entry (too short):  %s\n", p);
+	} else if(p[10]=='T') {
+		/* fprintf("**** Parsing %s\n", p); */
+
+		lf->tm.tm_year=atoi(p);
+		p+=5;
+		lf->tm.tm_mon=atoi(p);
+		p+=3;
+		lf->tm.tm_mday=atoi(p);
+		p+=3;
+		lf->tm.tm_hour=atoi(p);
+		p+=3;
+		lf->tm.tm_min=atoi(p);
+		p+=3;
+		lf->tm.tm_sec=atoi(p);
+
+		lf->tm.tm_year-=1900;
+		lf->tm.tm_mon--;
+
+		lf->timestamp=mktime(&lf->tm);
+
+		unfsckLine(lf);
 	} else if(index(p, '[') != NULL) {
 
 		p=index(p, '[');
-		assert(p != NULL);
-		/* Verify it's long enough to parse */
-		assert(strlen(p) > 32);
+		/* Input validation */
+		if(p == NULL || strlen(p) < 32) {
+			fprintf(stderr, "invalid log line:  %s\n", lf->line);
+			goto catch;
+		}
 
 		/* fprintf(stderr, "**** Parsing %s\n", p); */
 		p++;
@@ -124,21 +338,24 @@ static time_t parseTimestamp(struct logfile *lf)
 		lf->tm.tm_sec=atoi(p);
 
 		/* Make sure it still looks like CLF */
-		assert(p[2]==' ');
+		if(p[2] != ' ') {
+			fprintf(stderr, "log line is starting to not look like CLF: %s\n",
+				lf->line);
+			goto catch;
+		}
 
 		lf->tm.tm_year-=1900;
 
-		/* XXX  Hack for figuring out DST */
-		assert(p[5] == '7' || p[5] == '8');
-		if( p[5] == '7' ) {
-			lf->tm.tm_isdst=1;
-		}
+		/* Let mktime guess the timezone */
+		lf->tm.tm_isdst=-1;
 
 		lf->timestamp=mktime(&lf->tm);
 
 	} else {
 		fprintf(stderr, "Unknown log format:  %s\n", p);
 	}
+
+	catch:
 
 	if(lf->timestamp < 0) {
 		fprintf(stderr, "* Error parsing timestamp from %s", lf->line);
@@ -170,10 +387,11 @@ static char *nextLine(struct logfile *lf)
 		assert(p!=NULL);
 	}
 
-	p=gzgets(lf->input, lf->line, LINE_BUFFER-1);
+	p=myGzgets(lf);
 	if(p!=Z_NULL) {
+		/* At this point, p and lf->line represent the same location */
 		/* Make sure the line is short enough */
-		assert(strlen(lf->line) < LINE_BUFFER);
+		assert(strlen(p) < LINE_BUFFER);
 		/* Make sure we read a line */
 		if(p[strlen(p)-1] != '\n') {
 			fprintf(stderr, "*** BROKEN LOG ENTRY IN %s (no newline)\n",
@@ -198,11 +416,25 @@ static void closeLogfile(struct logfile *lf)
 
 	fprintf(stderr, "*** Closing %s\n", lf->filename);
 
+	/* Free the line buffer */
+	if(lf->line != NULL) {
+		free(lf->line);
+		lf->line=NULL;
+	}
+
 	gzerrno=gzclose(lf->input);
 	if(gzerrno!=0) {
 		gzerror(lf->input, &gzerrno);
 	}
 	lf->isOpen=0;
+
+	if(lf->gzBuf != NULL) {
+		free(lf->gzBuf);
+		lf->gzBuf = NULL;
+	}
+
+	lf->gzBufCur=NULL;
+	lf->gzBufEnd=NULL;
 }
 
 /**
@@ -225,6 +457,9 @@ static void destroyLogfile(struct logfile *lf)
 	if(lf->line != NULL) {
 		free(lf->line);
 	}
+	if(lf->gzBuf != NULL) {
+		free(lf->gzBuf);
+	}
 
 	/* Lastly, free the container itself. */
 	free(lf);
@@ -244,10 +479,6 @@ struct logfile *createLogfile(const char *filename)
 	rv->filename=(char *)strdup(filename);
 	assert(rv->filename != NULL);
 
-	/* Make room for lines */
-	rv->line=calloc(1, LINE_BUFFER);
-	assert(rv->line != NULL);
-
 	/* Try to open the logfile */
 	if(openLogfile(rv) != OK) {
 		destroyLogfile(rv);
@@ -255,12 +486,13 @@ struct logfile *createLogfile(const char *filename)
 	} else {
 		/* If it's opened succesfully, read the next (first) line */
 		p=nextLine(rv);
-		/* Now close the logfile */
-		closeLogfile(rv);
 		/* If nextLine didn't return a record, this entry is invalid. */
 		if(p == NULL) {
 			destroyLogfile(rv);
 			rv=NULL;
+		} else {
+			/* Otherwise, it's valid and we'll proceed, but close it. */
+			closeLogfile(rv);
 		}
 	}
 
@@ -423,9 +655,11 @@ int main(int argc, char **argv)
 		entries++;
 
 		lf=currentRecord(list);
+#ifdef USE_MYMALLOC
 		mymalloc_assert(lf);
 		mymalloc_assert(lf->line);
 		mymalloc_assert(lf->filename);
+#endif
 
 		assert(lf!=NULL);
 		if(lf->line) {

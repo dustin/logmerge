@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2002  Dustin Sallings
  *
- * $Id: logmerge.h,v 1.2 2002/06/06 04:01:27 dustin Exp $
+ * $Id: logmerge.h,v 1.3 2003/10/07 09:13:55 dustin Exp $
  */
 
 #ifndef LOGMERGE_H
@@ -16,6 +16,9 @@
 
 /* The size of a line buffer */
 #define LINE_BUFFER 16384
+/* Read buffer for gzipped data.  Fairly arbitrary, but just about anything
+ * helps. */
+#define GZBUFFER 1024*1024
 
 /* The logfile itself */
 struct logfile {
@@ -29,6 +32,10 @@ struct logfile {
 	struct tm tm;
 	/* 1 if it's open, 0 otherwise */
 	int isOpen;
+	/* Buffering for speeding up gzipped file access */
+	char *gzBufCur;
+	char *gzBufEnd;
+	char *gzBuf;
 	/* The actual input stream being read */
 	gzFile input;
 };
