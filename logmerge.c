@@ -464,15 +464,12 @@ static void dumpList(struct linked_list *list)
 	}
 }
 
-/**
- * The main.
- */
-int main(int argc, char **argv)
+/* Initialize all of the logfiles and returned a linked list of them */
+static struct linked_list *initLogfiles(int argc, char **argv)
 {
 	struct linked_list *list=NULL;
 	struct logfile *lf=NULL;
 	int i=0;
-	int entries=0;
 
 	if(argc>1) {
 		for(i=1; i<argc; i++) {
@@ -498,6 +495,13 @@ int main(int argc, char **argv)
 	}
 
 	dumpList(list);
+	return list;
+}
+
+static void outputLogfiles(struct linked_list *list)
+{
+	int entries=0;
+	struct logfile *lf=NULL;
 
 	while(list!=NULL) {
 		entries++;
@@ -520,6 +524,17 @@ int main(int argc, char **argv)
 	}
 
 	fprintf(stderr, "Read %d entries.\n", entries);
+}
+
+/**
+ * The main.
+ */
+int main(int argc, char **argv)
+{
+	struct linked_list *list=NULL;
+
+	list=initLogfiles(argc, argv);
+	outputLogfiles(list);
 
 #ifdef MYMALLOC
 	_mdebug_dump();
