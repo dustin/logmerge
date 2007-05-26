@@ -503,13 +503,16 @@ int main(int argc, char **argv)
 		entries++;
 
 		lf=currentRecord(list);
+		assert(lf!=NULL);
+		if(! lf->isOpen) {
+			openLogfile(lf);
+		}
+
 #ifdef USE_MYMALLOC
 		mymalloc_assert(lf);
 		mymalloc_assert(lf->line);
 		mymalloc_assert(lf->filename);
 #endif
-
-		assert(lf!=NULL);
 		if(lf->line) {
 			printf("%s", lf->line);
 		}
