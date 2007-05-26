@@ -73,6 +73,12 @@ static char *myGzgets(struct logfile *lf)
 	return(rv);
 }
 
+static void outputLineDirect(struct logfile *lf) {
+	assert(lf != NULL);
+	assert(lf->line != NULL);
+	printf("%s", lf->line);
+}
+
 /**
  * Open a logfile.
  */
@@ -95,6 +101,9 @@ static int openLogfile(struct logfile *lf)
 	/* Allocate the line buffer */
 	lf->line=calloc(1, LINE_BUFFER);
 	assert(lf->line != NULL);
+
+	/* Our line output function */
+	lf->outputLine=outputLineDirect;
 
 	/* Allocate the read buffer */
 	lf->gzBuf=calloc(1, GZBUFFER);
@@ -517,9 +526,7 @@ static void outputLogfiles(struct linked_list *list)
 		mymalloc_assert(lf->line);
 		mymalloc_assert(lf->filename);
 #endif
-		if(lf->line) {
-			printf("%s", lf->line);
-		}
+		lf->outputLine(lf);
 		list=skipRecord(list);
 	}
 

@@ -26,6 +26,8 @@ struct logfile {
 	char *filename;
 	/* The current record */
 	char *line;
+	/* Function to output the current line */
+	void (*outputLine)(struct logfile *);
 	/* The timestamp of the current record */
 	time_t timestamp;
 	/* The timestamp as a struct tm */
