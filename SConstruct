@@ -17,5 +17,5 @@ if env.conf.CheckCHeader('alloca.h'):
 	env.Append(CCFLAGS = '-DHAVE_ALLOCA_H')
 
 env = env.conf.Finish()
-env.Program('logmerge', ['logmerge.c', 'mymalloc.c'],
+env.Program('logmerge', ['logmerge.c', 'logfiles.c', 'mymalloc.c'],
 	LIBS=['z'])

@@ -56,5 +56,7 @@ struct linked_list *addToList(struct linked_list *list, struct logfile *r);
 struct logfile *currentRecord(struct linked_list *list);
 /* Skip to the next record in the list */
 struct linked_list *skipRecord(struct linked_list *list);
+/* Open a logfile */
+int openLogfile(struct logfile *lf);
 
 #endif /* LOGMERGE_H */
