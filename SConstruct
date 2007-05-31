@@ -12,6 +12,9 @@ env.Append(LIBPATH = '/opt/local/lib')
 if ARGUMENTS.get('MYMALLOC', 0):
 	env.Append(CCFLAGS = '-DUSE_MYMALLOC -DMYMALLOC')
 
+if ARGUMENTS.get('USE_ASSERT', 0):
+	env.Append(CCFLAGS = '-DUSE_ASSERT=1')
+
 env.Append(CCFLAGS = '-g -O2 -Wall -Werror')
 env.Append(LINKFLAGS = '-g')
 

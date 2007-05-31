@@ -32,9 +32,20 @@
 #endif
 
 #define NOTREACHED 0
+#define OVECCOUNT 30
 
-#define AMAZON_S3_REGEX "\\x+ \\s+ [(.*)] (\\s+) \\x+ \\x+ \\x+ " \
-	"\"(\\s+) (\\s+)\" (\\d+) \\s+ \\d+ \\d+ \\d+ \\d+ \"(\\s+)\" \"(\\s+)\""
+#define S3_BUCKET 1
+#define S3_DATE 2
+#define S3_IP 3
+#define S3_REQ 4
+#define S3_STATUS 5
+#define S3_SIZE 6
+#define S3_REFER 7
+#define S3_UA 8
+
+#define AMAZON_S3_REGEX "^[0-9a-f]+ ([-A-z0-9_\\.]+) \\[(.*)\\] ([0-9\\.]+) " \
+	"[0-9a-f]+ [0-9A-F]+ \\S+ \\S+ (\"[^\"]*\") (\\d+) - (\\d+) \\d+ \\d+ " \
+	"\\d+ (\"[^\"]*\") (\"[^\"]*\")"
 
 #define strdupa(d, s) { \
 	int strdupaStrlen=strlen(s); \
@@ -79,12 +90,32 @@ static char *myGzgets(struct logfile *lf)
 
 static void outputLineS3(struct logfile *lf) {
 	static pcre *regex=NULL;
+	int matched=0;
+	int ovector[OVECCOUNT];
+	assert(lf);
+	assert(lf->line);
 	if(regex == NULL) {
 		const char *err=NULL;
 		int errOffset=0;
-		fprintf(stderr, "Compiling %s\n", AMAZON_S3_REGEX);
 		regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
 		assert(regex != NULL);
+	}
+	matched=pcre_exec(regex, NULL, lf->line, strlen(lf->line), 0, 0,
+		ovector, OVECCOUNT);
+	if(matched > 0) {
+		const char **stringlist;
+		int rc = pcre_get_substring_list(lf->line, ovector, matched,
+			&stringlist);
+
+		if(rc >= 0) {
+			printf("%s - - [%s] %s %s %s %s %s %s\n",
+				stringlist[S3_IP], stringlist[S3_DATE], stringlist[S3_REQ],
+				stringlist[S3_STATUS], stringlist[S3_SIZE],
+				stringlist[S3_REFER], stringlist[S3_UA],
+				stringlist[S3_BUCKET]);
+		}
+
+		pcre_free_substring_list(stringlist);
 	}
 }
 
@@ -95,10 +126,15 @@ static int identifyLog(const char *line) {
 	int execRv=0;
 	const char *err=NULL;
 	int errOffset=0;
+	assert(line != NULL);
 	regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
 	assert(regex != NULL);
 	execRv=pcre_exec(regex, NULL, line, strlen(line), 0, 0, NULL, 0);
-	fprintf(stderr, "Regex for %s returned %d\n", line, execRv);
+	if(execRv == PCRE_ERROR_NOMATCH) {
+		rv=COMMON;
+	} else {
+		rv=AMAZON_S3;
+	}
 	return rv;
 }
 
@@ -286,7 +322,7 @@ static char *nextLine(struct logfile *lf)
 		}
 	}
 
-	return(p);
+	return p == NULL ? NULL : lf->line;
 }
 
 static void closeLogfile(struct logfile *lf)
@@ -377,15 +413,15 @@ struct logfile *createLogfile(const char *filename)
 			/* Otherwise, it's valid and we'll proceed, but close it. */
 			switch(identifyLog(p)) {
 				case COMMON:
-					fprintf(stderr, "%s is a common log file\n", filename);
+					fprintf(stderr, "**** %s is a common log file\n", filename);
 					rv->outputLine=outputLineDirect;
 					break;
 				case AMAZON_S3:
-					fprintf(stderr, "%s is an s3 log file\n", filename);
+					fprintf(stderr, "**** %s is an s3 log file\n", filename);
 					rv->outputLine=outputLineS3;
 					break;
 				case UNKNOWN:
-					fprintf(stderr, "Can't identify type of %s\n", filename);
+					fprintf(stderr, "! Can't identify type of %s\n", filename);
 					break;
 				default:
 					assert(0);
