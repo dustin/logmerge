@@ -20,6 +20,10 @@
  * helps. */
 #define GZBUFFER 1024*1024
 
+enum logType {
+	COMMON, AMAZON_S3, UNKNOWN
+};
+
 /* The logfile itself */
 struct logfile {
 	/* The filename of this log entry */

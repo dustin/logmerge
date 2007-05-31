@@ -22,6 +22,7 @@
 # define assert(a)
 #endif
 
+#include <pcre.h>
 #include <zlib.h>
 
 #include "logfiles.h"
@@ -31,6 +32,9 @@
 #endif
 
 #define NOTREACHED 0
+
+#define AMAZON_S3_REGEX "\\x+ \\s+ [(.*)] (\\s+) \\x+ \\x+ \\x+ " \
+	"\"(\\s+) (\\s+)\" (\\d+) \\s+ \\d+ \\d+ \\d+ \\d+ \"(\\s+)\" \"(\\s+)\""
 
 #define strdupa(d, s) { \
 	int strdupaStrlen=strlen(s); \
@@ -73,6 +77,31 @@ static char *myGzgets(struct logfile *lf)
 	return(rv);
 }
 
+static void outputLineS3(struct logfile *lf) {
+	static pcre *regex=NULL;
+	if(regex == NULL) {
+		const char *err=NULL;
+		int errOffset=0;
+		fprintf(stderr, "Compiling %s\n", AMAZON_S3_REGEX);
+		regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
+		assert(regex != NULL);
+	}
+}
+
+/* Returns a value from logTypes */
+static int identifyLog(const char *line) {
+	int rv=UNKNOWN;
+	static pcre *regex=NULL;
+	int execRv=0;
+	const char *err=NULL;
+	int errOffset=0;
+	regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
+	assert(regex != NULL);
+	execRv=pcre_exec(regex, NULL, line, strlen(line), 0, 0, NULL, 0);
+	fprintf(stderr, "Regex for %s returned %d\n", line, execRv);
+	return rv;
+}
+
 static void outputLineDirect(struct logfile *lf) {
 	assert(lf != NULL);
 	assert(lf->line != NULL);
@@ -101,9 +130,6 @@ int openLogfile(struct logfile *lf)
 	/* Allocate the line buffer */
 	lf->line=calloc(1, LINE_BUFFER);
 	assert(lf->line != NULL);
-
-	/* Our line output function */
-	lf->outputLine=outputLineDirect;
 
 	/* Allocate the read buffer */
 	lf->gzBuf=calloc(1, GZBUFFER);
@@ -349,7 +375,28 @@ struct logfile *createLogfile(const char *filename)
 			rv=NULL;
 		} else {
 			/* Otherwise, it's valid and we'll proceed, but close it. */
-			closeLogfile(rv);
+			switch(identifyLog(p)) {
+				case COMMON:
+					fprintf(stderr, "%s is a common log file\n", filename);
+					rv->outputLine=outputLineDirect;
+					break;
+				case AMAZON_S3:
+					fprintf(stderr, "%s is an s3 log file\n", filename);
+					rv->outputLine=outputLineS3;
+					break;
+				case UNKNOWN:
+					fprintf(stderr, "Can't identify type of %s\n", filename);
+					break;
+				default:
+					assert(0);
+			}
+
+			if(rv->outputLine == NULL) {
+				destroyLogfile(rv);
+				rv=NULL;
+			} else {
+				closeLogfile(rv);
+			}
 		}
 	}
 
