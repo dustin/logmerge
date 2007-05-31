@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 
 #ifdef USE_ASSERT
 # include <assert.h>
