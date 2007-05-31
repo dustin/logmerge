@@ -88,6 +88,25 @@ static char *myGzgets(struct logfile *lf)
 	return(rv);
 }
 
+/* Returns a value from logTypes */
+static int identifyLog(const char *line) {
+	int rv=UNKNOWN;
+	static pcre *regex=NULL;
+	int execRv=0;
+	const char *err=NULL;
+	int errOffset=0;
+	assert(line != NULL);
+	regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
+	assert(regex != NULL);
+	execRv=pcre_exec(regex, NULL, line, strlen(line), 0, 0, NULL, 0);
+	if(execRv == PCRE_ERROR_NOMATCH) {
+		rv=COMMON;
+	} else {
+		rv=AMAZON_S3;
+	}
+	return rv;
+}
+
 static void outputLineS3(struct logfile *lf) {
 	static pcre *regex=NULL;
 	int matched=0;
@@ -113,29 +132,15 @@ static void outputLineS3(struct logfile *lf) {
 				stringlist[S3_STATUS], stringlist[S3_SIZE],
 				stringlist[S3_REFER], stringlist[S3_UA],
 				stringlist[S3_BUCKET]);
+		} else {
+			fprintf(stderr, "*** S3: failed to create substring list: %d\n",
+				rc);
 		}
 
 		pcre_free_substring_list(stringlist);
-	}
-}
-
-/* Returns a value from logTypes */
-static int identifyLog(const char *line) {
-	int rv=UNKNOWN;
-	static pcre *regex=NULL;
-	int execRv=0;
-	const char *err=NULL;
-	int errOffset=0;
-	assert(line != NULL);
-	regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
-	assert(regex != NULL);
-	execRv=pcre_exec(regex, NULL, line, strlen(line), 0, 0, NULL, 0);
-	if(execRv == PCRE_ERROR_NOMATCH) {
-		rv=COMMON;
 	} else {
-		rv=AMAZON_S3;
+		fprintf(stderr, "*** S3: Failed to match ``%s''\n", lf->line);
 	}
-	return rv;
 }
 
 static void outputLineDirect(struct logfile *lf) {
