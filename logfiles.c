@@ -47,13 +47,6 @@
 	"[0-9a-f]+ [0-9A-F]+ \\S+ \\S+ (\"[^\"]*\") (\\d+) [-A-z0-9]+ ([-0-9]+) " \
 	"[-0-9]+ \\d+ [-0-9]+ (\"[^\"]*\") (\"[^\"]*\")"
 
-#define strdupa(d, s) { \
-	int strdupaStrlen=strlen(s); \
-	d=alloca(strdupaStrlen+1);\
-	assert(d!=NULL); \
-	memcpy(d, s, strdupaStrlen+1); \
-}
-
 static char *myGzgets(struct logfile *lf)
 {
 	char *rv=lf->line;
