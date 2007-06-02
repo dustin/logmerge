@@ -1,0 +1,13 @@
+#!/bin/sh
+
+rm -f got
+
+../logmerge ../samples/* > got 2> /dev/null
+
+if ! cmp expected got
+then
+	echo "Failed."
+	exit 1
+fi
+
+rm -f got
