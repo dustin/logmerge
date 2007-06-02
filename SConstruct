@@ -7,7 +7,7 @@ Help(opts.GenerateHelpText(env))
 
 # Extra places we need to look for includes
 env.Append(CPPPATH = ['/opt/local/include', '/usr/local/include'])
-env.Append(LIBPATH = '/opt/local/lib')
+env.Append(LIBPATH = ['/opt/local/lib', '/usr/local/lib'])
 
 if ARGUMENTS.get('MYMALLOC', 0):
 	env.Append(CCFLAGS = '-DUSE_MYMALLOC -DMYMALLOC')
