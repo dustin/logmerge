@@ -4,6 +4,8 @@
  * $Id: logmerge.c,v 1.10 2005/03/28 19:10:39 dustin Exp $
  */
 
+#include <iostream>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -17,16 +19,24 @@
 # include "mymalloc.h"
 #endif
 
-#include "logfiles.h"
+extern "C" {
+	#include "logfiles.h"
+}
 
 #define NOTREACHED 0
 
-static void dumpList(struct linked_list *list)
+namespace logmerge {
+	static void logmerge::dumpList(struct linked_list *list);
+	static struct linked_list *logmerge::initLogfiles(int, char **);
+	static void logmerge::outputLogfiles(struct linked_list *);
+}
+
+static void logmerge::dumpList(struct linked_list *list)
 {
 	struct linked_list *p;
 
 	if(list==NULL) {
-		fprintf(stderr, "*** dumpList: NULL list\n");
+		std::cerr << "*** dumpList: NULL list" << std::endl;
 	} else {
 		p=list;
 
@@ -39,7 +49,7 @@ static void dumpList(struct linked_list *list)
 }
 
 /* Initialize all of the logfiles and returned a linked list of them */
-static struct linked_list *initLogfiles(int argc, char **argv)
+static struct linked_list *logmerge::initLogfiles(int argc, char **argv)
 {
 	struct linked_list *list=NULL;
 	struct logfile *lf=NULL;
@@ -56,7 +66,8 @@ static struct linked_list *initLogfiles(int argc, char **argv)
 		}
 	} else {
 		char buf[8192];
-		fprintf(stderr, "No logfiles given, accepting list from stdin\n");
+		std::cerr << "No logfiles given, accepting list from stdin"
+			<< std::endl;
 		while(fgets((char*)&buf, sizeof(buf)-1, stdin)) {
 			buf[strlen(buf)-1]=0x00;
 			lf=createLogfile(buf);
@@ -72,7 +83,7 @@ static struct linked_list *initLogfiles(int argc, char **argv)
 	return list;
 }
 
-static void outputLogfiles(struct linked_list *list)
+static void logmerge::outputLogfiles(struct linked_list *list)
 {
 	int entries=0;
 	struct logfile *lf=NULL;
@@ -95,7 +106,7 @@ static void outputLogfiles(struct linked_list *list)
 		list=skipRecord(list);
 	}
 
-	fprintf(stderr, "Read %d entries.\n", entries);
+	std::cerr << "Read " << entries << " entries" << std::endl;
 }
 
 /**
@@ -105,8 +116,8 @@ int main(int argc, char **argv)
 {
 	struct linked_list *list=NULL;
 
-	list=initLogfiles(argc, argv);
-	outputLogfiles(list);
+	list=logmerge::initLogfiles(argc, argv);
+	logmerge::outputLogfiles(list);
 
 #ifdef MYMALLOC
 	_mdebug_dump();

@@ -27,7 +27,7 @@ if not env.conf.CheckLibWithHeader('pcre', 'pcre.h', 'c'):
 	Exit(1)
 
 env = env.conf.Finish()
-env.Program('logmerge', ['logmerge.c', 'logfiles.c', 'mymalloc.c'],
+env.Program('logmerge', ['logmerge.cpp', 'logfiles.c', 'mymalloc.c'],
 	LIBS=['z', 'pcre'])
 
 # vim: syntax=python
