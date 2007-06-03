@@ -12,6 +12,7 @@
 #ifdef USE_ASSERT
 # include <assert.h>
 #else
+# undef assert
 # define assert(a)
 #endif
 
@@ -26,9 +27,9 @@ extern "C" {
 #define NOTREACHED 0
 
 namespace logmerge {
-	static void logmerge::dumpList(struct linked_list *list);
-	static struct linked_list *logmerge::initLogfiles(int, char **);
-	static void logmerge::outputLogfiles(struct linked_list *);
+	static void dumpList(struct linked_list *list);
+	static struct linked_list *initLogfiles(int, char **);
+	static void outputLogfiles(struct linked_list *);
 }
 
 static void logmerge::dumpList(struct linked_list *list)
