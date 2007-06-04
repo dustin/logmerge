@@ -40,8 +40,6 @@ struct logfile {
 	void (*outputLine)(struct logfile *);
 	/* The timestamp of the current record */
 	time_t timestamp;
-	/* The timestamp as a struct tm */
-	struct tm tm;
 	/* Indicate whether this logfile is open */
 	bool isOpen;
 	/* Buffering for speeding up gzipped file access */

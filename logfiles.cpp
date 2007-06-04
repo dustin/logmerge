@@ -204,8 +204,6 @@ static time_t parseTimestamp(struct logfile *lf)
 
 	lf->timestamp=-1;
 
-	memset(&lf->tm, 0x00, sizeof(lf->tm));
-
 	p=lf->line;
 
 	try {
@@ -215,6 +213,8 @@ static time_t parseTimestamp(struct logfile *lf)
 			/* This is a broken entry */
 			fprintf(stderr, "Broken log entry (too short):  %s\n", p);
 		} else if(index(p, '[') != NULL) {
+			struct tm tm;
+			memset(&tm, 0x00, sizeof(tm));
 
 			p=index(p, '[');
 			/* Input validation */
@@ -225,17 +225,17 @@ static time_t parseTimestamp(struct logfile *lf)
 
 			/* fprintf(stderr, "**** Parsing %s\n", p); */
 			p++;
-			lf->tm.tm_mday=atoi(p);
+			tm.tm_mday=atoi(p);
 			p+=3;
-			lf->tm.tm_mon=parseMonth(p);
+			tm.tm_mon=parseMonth(p);
 			p+=4;
-			lf->tm.tm_year=atoi(p);
+			tm.tm_year=atoi(p);
 			p+=5;
-			lf->tm.tm_hour=atoi(p);
+			tm.tm_hour=atoi(p);
 			p+=3;
-			lf->tm.tm_min=atoi(p);
+			tm.tm_min=atoi(p);
 			p+=3;
-			lf->tm.tm_sec=atoi(p);
+			tm.tm_sec=atoi(p);
 
 			/* Make sure it still looks like CLF */
 			if(p[2] != ' ') {
@@ -245,12 +245,12 @@ static time_t parseTimestamp(struct logfile *lf)
 				throw BadTimestamp();
 			}
 
-			lf->tm.tm_year-=1900;
+			tm.tm_year-=1900;
 
 			/* Let mktime guess the timezone */
-			lf->tm.tm_isdst=-1;
+			tm.tm_isdst=-1;
 
-			lf->timestamp=mktime(&lf->tm);
+			lf->timestamp=mktime(&tm);
 
 		} else {
 			fprintf(stderr, "Unknown log format:  %s\n", p);
