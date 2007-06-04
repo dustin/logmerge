@@ -20,6 +20,8 @@
  * helps. */
 #define GZBUFFER 1024*1024
 
+extern "C" {
+
 enum logType {
 	COMMON, AMAZON_S3, UNKNOWN
 };
@@ -62,5 +64,7 @@ struct logfile *currentRecord(struct linked_list *list);
 struct linked_list *skipRecord(struct linked_list *list);
 /* Open a logfile */
 int openLogfile(struct logfile *lf);
+
+} // extern C
 
 #endif /* LOGMERGE_H */

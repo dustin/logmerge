@@ -162,11 +162,11 @@ int openLogfile(struct logfile *lf)
 	}
 
 	/* Allocate the line buffer */
-	lf->line=calloc(1, LINE_BUFFER);
+	lf->line=(char*)calloc(1, LINE_BUFFER);
 	assert(lf->line != NULL);
 
 	/* Allocate the read buffer */
-	lf->gzBuf=calloc(1, GZBUFFER);
+	lf->gzBuf=(char*)calloc(1, GZBUFFER);
 	assert(lf->gzBuf != NULL);
 
 	lf->gzBufCur=NULL;
@@ -237,7 +237,7 @@ static time_t parseTimestamp(struct logfile *lf)
 		/* Input validation */
 		if(p == NULL || strlen(p) < 32) {
 			fprintf(stderr, "invalid log line:  %s\n", lf->line);
-			goto catch;
+			goto cheapCatch;
 		}
 
 		/* fprintf(stderr, "**** Parsing %s\n", p); */
@@ -258,7 +258,7 @@ static time_t parseTimestamp(struct logfile *lf)
 		if(p[2] != ' ') {
 			fprintf(stderr, "log line is starting to not look like CLF: %s\n",
 				lf->line);
-			goto catch;
+			goto cheapCatch;
 		}
 
 		lf->tm.tm_year-=1900;
@@ -272,7 +272,7 @@ static time_t parseTimestamp(struct logfile *lf)
 		fprintf(stderr, "Unknown log format:  %s\n", p);
 	}
 
-	catch:
+	cheapCatch:
 
 	if(lf->timestamp < 0) {
 		fprintf(stderr, "* Error parsing timestamp from %s", lf->line);
@@ -390,7 +390,7 @@ struct logfile *createLogfile(const char *filename)
 	struct logfile *rv=NULL;
 	char *p=NULL;
 
-	rv=calloc(1, sizeof(struct logfile));
+	rv=(struct logfile *)calloc(1, sizeof(struct logfile));
 	assert(rv != NULL);
 
 	rv->filename=(char *)strdup(filename);
@@ -448,7 +448,7 @@ struct linked_list *addToList(struct linked_list *list, struct logfile *r)
 
 	assert(r != NULL);
 
-	tmp=calloc(1, sizeof(struct linked_list));
+	tmp=(struct linked_list *)calloc(1, sizeof(struct linked_list));
 
 	tmp->logfile=r;
 
