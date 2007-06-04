@@ -6,7 +6,19 @@ rm -f got
 
 if ! cmp expected got
 then
-	echo "Failed."
+	echo "Failed with files as args."
+	exit 1
+fi
+
+rm -f got
+
+# Test again with files from stdin
+
+ls -1 ../samples/* | ../logmerge > got 2> /dev/null
+
+if ! cmp expected got
+then
+	echo "Failed with files from stdin."
 	exit 1
 fi
 
