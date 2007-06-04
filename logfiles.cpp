@@ -24,10 +24,6 @@
 
 #include "logfiles.h"
 
-#ifdef MYMALLOC
-#include "mymalloc.h"
-#endif
-
 #define NOTREACHED 0
 
 #define AMAZON_S3_REGEX "^[0-9a-f]+ ([-A-z0-9_\\.]+) \\[(.*)\\] ([0-9\\.]+) " \

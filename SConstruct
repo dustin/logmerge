@@ -1,16 +1,11 @@
 opts=Options()
 
-opts.Add(BoolOption('MYMALLOC', 'Use mymalloc for memory debug', 0))
-
 env = Environment(options = opts)
 Help(opts.GenerateHelpText(env))
 
 # Extra places we need to look for includes
 env.Append(CPPPATH = ['/opt/local/include', '/usr/local/include'])
 env.Append(LIBPATH = ['/opt/local/lib', '/usr/local/lib'])
-
-if ARGUMENTS.get('MYMALLOC', 0):
-	env.Append(CCFLAGS = '-DUSE_MYMALLOC -DMYMALLOC')
 
 if ARGUMENTS.get('USE_ASSERT', 0):
 	env.Append(CCFLAGS = '-DUSE_ASSERT=1')
@@ -28,7 +23,7 @@ if not env.conf.CheckLibWithHeader('boost_regex',
 	Exit(1)
 
 env = env.conf.Finish()
-env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp', 'mymalloc.c'],
+env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp'],
 	LIBS=['z', 'boost_regex'])
 
 # vim: syntax=python

@@ -15,10 +15,6 @@
 # define assert(a)
 #endif
 
-#ifdef USE_MYMALLOC
-# include "mymalloc.h"
-#endif
-
 #include "logfiles.h"
 
 namespace logmerge {
