@@ -7,6 +7,9 @@
 #ifndef LOGMERGE_H
 #define LOGMERGE_H 1
 
+#include <queue>
+#include <vector>
+
 #include <sys/time.h>
 #include <sys/types.h>
 #include <zlib.h>
@@ -48,20 +51,21 @@ struct logfile {
 	gzFile input;
 };
 
-/* Linked list to hold the queue */
-struct linked_list {
-	struct logfile *logfile;
-	struct linked_list *next;
+class TimeCmp {
+public:
+	bool operator() (const struct logfile* a, const struct logfile* b) const;
 };
+
+typedef std::priority_queue<struct logfile *,
+	std::vector<struct logfile *>, TimeCmp>
+	log_queue;
 
 /* Get a new logfile */
 struct logfile *createLogfile(const char *filename);
-/* Add a new record to the correct location in the given linked list. */
-struct linked_list *addToList(struct linked_list *list, struct logfile *r);
 /* Get the current record from the list */
-struct logfile *currentRecord(struct linked_list *list);
+struct logfile *currentRecord(const log_queue&);
 /* Skip to the next record in the list */
-struct linked_list *skipRecord(struct linked_list *list);
+void skipRecord(log_queue&);
 /* Open a logfile */
 int openLogfile(struct logfile *lf);
 

@@ -20,39 +20,18 @@
 # include "mymalloc.h"
 #endif
 
-extern "C" {
-	#include "logfiles.h"
-}
+#include "logfiles.h"
 
 #define NOTREACHED 0
 
 namespace logmerge {
-	static void dumpList(struct linked_list *list);
-	static struct linked_list *initLogfiles(int, char **);
-	static void outputLogfiles(struct linked_list *);
+	static void initLogfiles(log_queue&, int, char **);
+	static void outputLogfiles(log_queue);
 }
 
-static void logmerge::dumpList(struct linked_list *list)
+/* Initialize all of the logfiles */
+static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 {
-	struct linked_list *p;
-
-	if(list==NULL) {
-		std::cerr << "*** dumpList: NULL list" << std::endl;
-	} else {
-		p=list;
-
-		while(p!=NULL) {
-			fprintf(stderr, "*** dumpList: %s (%d)\n", p->logfile->filename,
-				(int)p->logfile->timestamp);
-			p=p->next;
-		}
-	}
-}
-
-/* Initialize all of the logfiles and returned a linked list of them */
-static struct linked_list *logmerge::initLogfiles(int argc, char **argv)
-{
-	struct linked_list *list=NULL;
 	struct logfile *lf=NULL;
 	int i=0;
 
@@ -60,7 +39,7 @@ static struct linked_list *logmerge::initLogfiles(int argc, char **argv)
 		for(i=1; i<argc; i++) {
 			lf=createLogfile(argv[i]);
 			if(lf!=NULL) {
-				list=addToList(list, lf);
+				queue.push(lf);
 			} else {
 				fprintf(stderr, "Error opening logfile ``%s''\n", argv[i]);
 			}
@@ -73,26 +52,24 @@ static struct linked_list *logmerge::initLogfiles(int argc, char **argv)
 			buf[strlen(buf)-1]=0x00;
 			lf=createLogfile(buf);
 			if(lf!=NULL) {
-				list=addToList(list, lf);
+				queue.push(lf);
 			} else {
 				fprintf(stderr, "Error opening logfile ``%s''\n", buf);
 			}
 		}
 	}
-
-	dumpList(list);
-	return list;
 }
 
-static void logmerge::outputLogfiles(struct linked_list *list)
+static void logmerge::outputLogfiles(log_queue queue)
 {
 	int entries=0;
 	struct logfile *lf=NULL;
 
-	while(list!=NULL) {
+	while(!queue.empty()) {
+		std::cerr << "Top of queue:  " << queue.top()->filename << std::endl;
 		entries++;
 
-		lf=currentRecord(list);
+		lf=currentRecord(queue);
 		assert(lf!=NULL);
 		if(! lf->isOpen) {
 			openLogfile(lf);
@@ -104,7 +81,7 @@ static void logmerge::outputLogfiles(struct linked_list *list)
 		mymalloc_assert(lf->filename);
 #endif
 		lf->outputLine(lf);
-		list=skipRecord(list);
+		skipRecord(queue);
 	}
 
 	std::cerr << "Read " << entries << " entries" << std::endl;
@@ -115,10 +92,10 @@ static void logmerge::outputLogfiles(struct linked_list *list)
  */
 int main(int argc, char **argv)
 {
-	struct linked_list *list=NULL;
+	log_queue queue;
 
-	list=logmerge::initLogfiles(argc, argv);
-	logmerge::outputLogfiles(list);
+	logmerge::initLogfiles(queue, argc, argv);
+	logmerge::outputLogfiles(queue);
 
 #ifdef MYMALLOC
 	_mdebug_dump();

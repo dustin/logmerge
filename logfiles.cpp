@@ -44,6 +44,12 @@
 
 boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
+bool TimeCmp::operator() (const struct logfile* a, const struct logfile* b)
+	const
+{
+	return a->timestamp > b->timestamp;
+}
+
 static char *myGzgets(struct logfile *lf)
 {
 	char *rv=lf->line;
@@ -419,68 +425,14 @@ struct logfile *createLogfile(const char *filename)
 }
 
 /**
- * Add a logfile to the given linked list.  If the list is NULL, create a
- * new one.
- */
-struct linked_list *addToList(struct linked_list *list, struct logfile *r)
-{
-	struct linked_list *tmp;
-	struct linked_list *rv;
-
-	assert(r != NULL);
-
-	tmp=(struct linked_list *)calloc(1, sizeof(struct linked_list));
-
-	tmp->logfile=r;
-
-	if(list == NULL) {
-		rv=tmp;
-	} else {
-
-		assert(list->logfile != NULL);
-
-		if(tmp->logfile->timestamp < list->logfile->timestamp) {
-			/* Special case where it goes at the head. */
-			rv=tmp;
-			tmp->next=list;
-		} else {
-			/* Regular case where it goes somewhere in the list. */
-			struct linked_list *p;
-			int placed=0;
-			
-			rv=list;
-			p=list;
-			while(placed==0 && p->next != NULL) {
-
-				if(tmp->logfile->timestamp < p->next->logfile->timestamp) {
-					tmp->next=p->next;
-					p->next=tmp;
-					placed=1;
-				}
-
-				p=p->next;
-			}
-
-			/* If it's still not placed, it goes at the end */
-			if(placed==0) {
-				p->next=tmp;
-			}
-		}
-	}
-
-
-	return(rv);
-}
-
-/**
  * Get the current record from the first entry in the linked list.
  */
-struct logfile *currentRecord(struct linked_list *list)
+struct logfile *currentRecord(const log_queue& queue)
 {
 	struct logfile *rv=NULL;
 
-	if(list!=NULL && list->logfile != NULL) {
-		rv=list->logfile;
+	if(!queue.empty()) {
+		rv=queue.top();
 	}
 
 	return(rv);
@@ -490,30 +442,21 @@ struct logfile *currentRecord(struct linked_list *list)
  * Get rid of the first entry in the log list, and reinsert it somewhere
  * that makes sense, or throw it away if it's no longer necessary.
  */
-struct linked_list *skipRecord(struct linked_list *list)
+void skipRecord(log_queue& queue)
 {
-	struct linked_list *rv=NULL;
 	struct logfile *oldEntry=NULL;
 	char *p;
 
-	if(list!=NULL) {
-		rv=list->next;
-
-		oldEntry=list->logfile;
+	if(!queue.empty()) {
+		oldEntry=queue.top();
+		queue.pop();
 
 		p=nextLine(oldEntry);
 		/* If stuff comes back, reinsert the old entry */
 		if(p!=NULL) {
-			rv=addToList(rv, oldEntry);
+			queue.push(oldEntry);
 		} else {
 			destroyLogfile(oldEntry);
 		}
-
-		/* No longer need this record, a new one will be created when it's
-		 * reinserted (if it's reinserted)
-		 */
-		free(list);
 	}
-
-	return(rv);
 }
