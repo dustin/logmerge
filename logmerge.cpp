@@ -6,8 +6,6 @@
 
 #include <iostream>
 
-#include <stdio.h>
-
 #ifdef USE_ASSERT
 # include <assert.h>
 #else
@@ -34,7 +32,8 @@ static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 			if(lf!=NULL) {
 				queue.push(lf);
 			} else {
-				fprintf(stderr, "Error opening logfile ``%s''\n", argv[i]);
+				std::cerr << "Error opening logfile ``" << argv[i] << "''"
+					<< std::endl;
 			}
 		}
 	} else {
@@ -47,7 +46,8 @@ static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 			if(lf!=NULL) {
 				queue.push(lf);
 			} else {
-				fprintf(stderr, "Error opening logfile ``%s''\n", buf);
+				std::cerr << "Error opening logfile ``" << buf << "''"
+					<< std::endl;
 			}
 		}
 	}
@@ -59,7 +59,6 @@ static void logmerge::outputLogfiles(log_queue queue)
 	struct logfile *lf=NULL;
 
 	while(!queue.empty()) {
-		std::cerr << "Top of queue:  " << queue.top()->filename << std::endl;
 		entries++;
 
 		lf=currentRecord(queue);
