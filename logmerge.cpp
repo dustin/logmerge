@@ -67,11 +67,6 @@ static void logmerge::outputLogfiles(log_queue queue)
 			openLogfile(lf);
 		}
 
-#ifdef USE_MYMALLOC
-		mymalloc_assert(lf);
-		mymalloc_assert(lf->line);
-		mymalloc_assert(lf->filename);
-#endif
 		lf->outputLine(lf);
 		skipRecord(queue);
 	}
@@ -88,10 +83,6 @@ int main(int argc, char **argv)
 
 	logmerge::initLogfiles(queue, argc, argv);
 	logmerge::outputLogfiles(queue);
-
-#ifdef MYMALLOC
-	_mdebug_dump();
-#endif /* MYMALLOC */
 
 	return(0);
 }
