@@ -18,23 +18,25 @@
 namespace logmerge {
 	static void initLogfiles(log_queue&, int, char **);
 	static void outputLogfiles(log_queue);
+	static void initLogfile(log_queue&, const char*);
+}
+
+static void logmerge::initLogfile(log_queue& queue, const char *filename) {
+	struct logfile *lf=createLogfile(filename);
+	if(lf!=NULL) {
+		queue.push(lf);
+	} else {
+		std::cerr << "Error opening logfile ``" << filename
+			<< "''" << std::endl;
+	}
 }
 
 /* Initialize all of the logfiles */
 static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 {
-	struct logfile *lf=NULL;
-	int i=0;
-
 	if(argc>1) {
-		for(i=1; i<argc; i++) {
-			lf=createLogfile(argv[i]);
-			if(lf!=NULL) {
-				queue.push(lf);
-			} else {
-				std::cerr << "Error opening logfile ``" << argv[i] << "''"
-					<< std::endl;
-			}
+		for(int i=1; i<argc; i++) {
+			initLogfile(queue, argv[i]);
 		}
 	} else {
 		char buf[8192];
@@ -42,13 +44,7 @@ static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 			<< std::endl;
 		while(fgets((char*)&buf, sizeof(buf)-1, stdin)) {
 			buf[strlen(buf)-1]=0x00;
-			lf=createLogfile(buf);
-			if(lf!=NULL) {
-				queue.push(lf);
-			} else {
-				std::cerr << "Error opening logfile ``" << buf << "''"
-					<< std::endl;
-			}
+			initLogfile(queue, buf);
 		}
 	}
 }
