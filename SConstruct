@@ -15,8 +15,6 @@ env.Append(LINKFLAGS = '-g')
 
 env.conf = Configure(env)
 
-if env.conf.CheckCHeader('alloca.h'):
-	env.Append(CCFLAGS = '-DHAVE_ALLOCA_H')
 if not env.conf.CheckLibWithHeader('boost_regex',
 	'boost/regex.hpp', 'c++'):
 	print 'Boost regex is required'
