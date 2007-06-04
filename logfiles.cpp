@@ -189,6 +189,12 @@ static int parseMonth(char *s)
 	return(rv);
 }
 
+class BadTimestamp : public std::exception {
+	virtual const char* what() const throw() {
+		return "Timestamp parse error";
+	}
+};
+
 static time_t parseTimestamp(struct logfile *lf)
 {
 	char *p;
@@ -202,52 +208,57 @@ static time_t parseTimestamp(struct logfile *lf)
 
 	p=lf->line;
 
-	/* The shortest line I can parse is about 32 characters. */
-	if(strlen(p) < 32) {
-		/* This is a broken entry */
-		fprintf(stderr, "Broken log entry (too short):  %s\n", p);
-	} else if(index(p, '[') != NULL) {
+	try {
 
-		p=index(p, '[');
-		/* Input validation */
-		if(p == NULL || strlen(p) < 32) {
-			fprintf(stderr, "invalid log line:  %s\n", lf->line);
-			goto cheapCatch;
+		/* The shortest line I can parse is about 32 characters. */
+		if(strlen(p) < 32) {
+			/* This is a broken entry */
+			fprintf(stderr, "Broken log entry (too short):  %s\n", p);
+		} else if(index(p, '[') != NULL) {
+
+			p=index(p, '[');
+			/* Input validation */
+			if(p == NULL || strlen(p) < 32) {
+				fprintf(stderr, "invalid log line:  %s\n", lf->line);
+				throw BadTimestamp();
+			}
+
+			/* fprintf(stderr, "**** Parsing %s\n", p); */
+			p++;
+			lf->tm.tm_mday=atoi(p);
+			p+=3;
+			lf->tm.tm_mon=parseMonth(p);
+			p+=4;
+			lf->tm.tm_year=atoi(p);
+			p+=5;
+			lf->tm.tm_hour=atoi(p);
+			p+=3;
+			lf->tm.tm_min=atoi(p);
+			p+=3;
+			lf->tm.tm_sec=atoi(p);
+
+			/* Make sure it still looks like CLF */
+			if(p[2] != ' ') {
+				fprintf(stderr,
+					"log line is starting to not look like CLF: %s\n",
+					lf->line);
+				throw BadTimestamp();
+			}
+
+			lf->tm.tm_year-=1900;
+
+			/* Let mktime guess the timezone */
+			lf->tm.tm_isdst=-1;
+
+			lf->timestamp=mktime(&lf->tm);
+
+		} else {
+			fprintf(stderr, "Unknown log format:  %s\n", p);
 		}
 
-		/* fprintf(stderr, "**** Parsing %s\n", p); */
-		p++;
-		lf->tm.tm_mday=atoi(p);
-		p+=3;
-		lf->tm.tm_mon=parseMonth(p);
-		p+=4;
-		lf->tm.tm_year=atoi(p);
-		p+=5;
-		lf->tm.tm_hour=atoi(p);
-		p+=3;
-		lf->tm.tm_min=atoi(p);
-		p+=3;
-		lf->tm.tm_sec=atoi(p);
-
-		/* Make sure it still looks like CLF */
-		if(p[2] != ' ') {
-			fprintf(stderr, "log line is starting to not look like CLF: %s\n",
-				lf->line);
-			goto cheapCatch;
-		}
-
-		lf->tm.tm_year-=1900;
-
-		/* Let mktime guess the timezone */
-		lf->tm.tm_isdst=-1;
-
-		lf->timestamp=mktime(&lf->tm);
-
-	} else {
-		fprintf(stderr, "Unknown log format:  %s\n", p);
+	} catch(BadTimestamp e) {
+		// Damn.
 	}
-
-	cheapCatch:
 
 	if(lf->timestamp < 0) {
 		fprintf(stderr, "* Error parsing timestamp from %s", lf->line);
