@@ -7,13 +7,6 @@
 #include <iostream>
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#endif /* HAVE_ALLOCA_H */
-#include <ctype.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -36,7 +29,6 @@
 #endif
 
 #define NOTREACHED 0
-#define OVECCOUNT 30
 
 #define AMAZON_S3_REGEX "^[0-9a-f]+ ([-A-z0-9_\\.]+) \\[(.*)\\] ([0-9\\.]+) " \
 	"[0-9a-f]+ [0-9A-F]+ \\S+ \\S+ (\"[^\"]*\") (\\d+) [-A-z0-9]+ ([-0-9]+) " \

@@ -7,7 +7,6 @@
 #include <iostream>
 
 #include <stdio.h>
-#include <string.h>
 
 #ifdef USE_ASSERT
 # include <assert.h>
@@ -21,8 +20,6 @@
 #endif
 
 #include "logfiles.h"
-
-#define NOTREACHED 0
 
 namespace logmerge {
 	static void initLogfiles(log_queue&, int, char **);
