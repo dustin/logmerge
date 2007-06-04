@@ -125,14 +125,14 @@ int openLogfile(struct logfile *lf)
 	int rv=ERROR;
 	assert(lf != NULL);
 
-	assert(lf->isOpen==0);
+	assert(! lf->isOpen);
 
 	fprintf(stderr, "*** Opening %s\n", lf->filename);
 
 	lf->input=gzopen(lf->filename, "r");
 
 	if(lf->input != NULL) {
-		lf->isOpen=1;
+		lf->isOpen=true;
 		rv=OK;
 	}
 
@@ -276,7 +276,7 @@ static char *nextLine(struct logfile *lf)
 
 	assert(lf != NULL);
 
-	if(lf->isOpen == 0) {
+	if(!lf->isOpen) {
 		int logfileOpened=openLogfile(lf);
 		/* This looks a little awkward, but it's the only way I can both
 		 * avoid the side effect of having assert perform the task and
@@ -329,7 +329,7 @@ static void closeLogfile(struct logfile *lf)
 	if(gzerrno!=0) {
 		gzerror(lf->input, &gzerrno);
 	}
-	lf->isOpen=0;
+	lf->isOpen=false;
 
 	if(lf->gzBuf != NULL) {
 		free(lf->gzBuf);
@@ -349,7 +349,7 @@ static void destroyLogfile(struct logfile *lf)
 
 	fprintf(stderr, "** Destroying %s\n", lf->filename);
 
-	if(lf->isOpen==1) {
+	if(lf->isOpen) {
 		closeLogfile(lf);
 	}
 

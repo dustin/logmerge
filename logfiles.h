@@ -7,6 +7,7 @@
 #ifndef LOGMERGE_H
 #define LOGMERGE_H 1
 
+#include <iostream>
 #include <queue>
 #include <vector>
 
@@ -41,8 +42,8 @@ struct logfile {
 	time_t timestamp;
 	/* The timestamp as a struct tm */
 	struct tm tm;
-	/* 1 if it's open, 0 otherwise */
-	int isOpen;
+	/* Indicate whether this logfile is open */
+	bool isOpen;
 	/* Buffering for speeding up gzipped file access */
 	char *gzBufCur;
 	char *gzBufEnd;
