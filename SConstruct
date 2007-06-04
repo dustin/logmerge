@@ -22,12 +22,13 @@ env.conf = Configure(env)
 
 if env.conf.CheckCHeader('alloca.h'):
 	env.Append(CCFLAGS = '-DHAVE_ALLOCA_H')
-if not env.conf.CheckLibWithHeader('pcre', 'pcre.h', 'c'):
-	print 'PCRE is required.'
+if not env.conf.CheckLibWithHeader('boost_regex',
+	'boost/regex.hpp', 'c++'):
+	print 'Boost regex is required'
 	Exit(1)
 
 env = env.conf.Finish()
 env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp', 'mymalloc.c'],
-	LIBS=['z', 'pcre'])
+	LIBS=['z', 'boost_regex'])
 
 # vim: syntax=python

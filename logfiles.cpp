@@ -4,6 +4,8 @@
  * $Id: logmerge.c,v 1.10 2005/03/28 19:10:39 dustin Exp $
  */
 
+#include <iostream>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,10 +21,12 @@
 #ifdef USE_ASSERT
 # include <assert.h>
 #else
+# undef assert
 # define assert(a)
 #endif
 
-#include <pcre.h>
+#include <boost/regex.hpp>
+
 #include <zlib.h>
 
 #include "logfiles.h"
@@ -34,18 +38,11 @@
 #define NOTREACHED 0
 #define OVECCOUNT 30
 
-#define S3_BUCKET 1
-#define S3_DATE 2
-#define S3_IP 3
-#define S3_REQ 4
-#define S3_STATUS 5
-#define S3_SIZE 6
-#define S3_REFER 7
-#define S3_UA 8
-
 #define AMAZON_S3_REGEX "^[0-9a-f]+ ([-A-z0-9_\\.]+) \\[(.*)\\] ([0-9\\.]+) " \
 	"[0-9a-f]+ [0-9A-F]+ \\S+ \\S+ (\"[^\"]*\") (\\d+) [-A-z0-9]+ ([-0-9]+) " \
 	"[-0-9]+ \\d+ [-0-9]+ (\"[^\"]*\") (\"[^\"]*\")"
+
+boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
 static char *myGzgets(struct logfile *lf)
 {
@@ -84,53 +81,37 @@ static char *myGzgets(struct logfile *lf)
 /* Returns a value from logTypes */
 static int identifyLog(const char *line) {
 	int rv=UNKNOWN;
-	static pcre *regex=NULL;
-	int execRv=0;
-	const char *err=NULL;
-	int errOffset=0;
 	assert(line != NULL);
-	regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
-	assert(regex != NULL);
-	execRv=pcre_exec(regex, NULL, line, strlen(line), 0, 0, NULL, 0);
-	if(execRv == PCRE_ERROR_NOMATCH) {
-		rv=COMMON;
-	} else {
+
+	if(boost::regex_search(line, amazon_s3_regex)) {
 		rv=AMAZON_S3;
+	} else {
+		rv=COMMON;
 	}
 	return rv;
 }
 
 static void outputLineS3(struct logfile *lf) {
-	static pcre *regex=NULL;
-	int matched=0;
-	int ovector[OVECCOUNT];
+	boost::cmatch what;
+
 	assert(lf);
 	assert(lf->line);
-	if(regex == NULL) {
-		const char *err=NULL;
-		int errOffset=0;
-		regex=pcre_compile(AMAZON_S3_REGEX, 0, &err, &errOffset, NULL);
-		assert(regex != NULL);
-	}
-	matched=pcre_exec(regex, NULL, lf->line, strlen(lf->line), 0, 0,
-		ovector, OVECCOUNT);
-	if(matched > 0) {
-		const char **stringlist;
-		int rc = pcre_get_substring_list(lf->line, ovector, matched,
-			&stringlist);
 
-		if(rc >= 0) {
-			printf("%s - - [%s] %s %s %s %s %s %s\n",
-				stringlist[S3_IP], stringlist[S3_DATE], stringlist[S3_REQ],
-				stringlist[S3_STATUS], stringlist[S3_SIZE],
-				stringlist[S3_REFER], stringlist[S3_UA],
-				stringlist[S3_BUCKET]);
-		} else {
-			fprintf(stderr, "*** S3: failed to create substring list: %d\n",
-				rc);
-		}
+/*
+// Positions as defined in the regex
+S3_BUCKET	1
+S3_DATE		2
+S3_IP		3
+S3_REQ		4
+S3_STATUS	5
+S3_SIZE		6
+S3_REFER	7
+S3_UA		8
+*/
 
-		pcre_free_substring_list(stringlist);
+	if(boost::regex_search(lf->line, what, amazon_s3_regex)) {
+		std::ostream_iterator<char> out(std::cout);
+		what.format(out, "$3 - - [$2] $4 $5 $6 $7 $8 $1\n");
 	} else {
 		fprintf(stderr, "*** S3: Failed to match ``%s''\n", lf->line);
 	}
