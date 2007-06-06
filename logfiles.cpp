@@ -38,7 +38,7 @@ bool TimeCmp::operator() (const struct logfile* a, const struct logfile* b)
 	return a->timestamp > b->timestamp;
 }
 
-static char *myGzgets(struct logfile *lf)
+static bool myGzgets(struct logfile *lf)
 {
 	char *rv=lf->line;
 	int s=LINE_BUFFER;
@@ -51,7 +51,7 @@ static char *myGzgets(struct logfile *lf)
 			lf->gzBufEnd=bytesRead + lf->gzBuf - 1;
 			/* Make sure we got something */
 			if(bytesRead == 0) {
-				return(NULL);
+				return(false);
 			}
 			lf->gzBufCur=lf->gzBuf;
 		}
@@ -60,11 +60,11 @@ static char *myGzgets(struct logfile *lf)
 			*rv++ = *lf->gzBufCur;
 			if(*(lf->gzBufCur++) == '\n') {
 				*rv=0x00;
-				return(rv);
+				return(true);
 			}
 		} else {
 			*rv=0x00;
-			return(rv);
+			return(true);
 		}
 	}
 
@@ -269,10 +269,11 @@ static time_t parseTimestamp(struct logfile *lf)
 
 /**
  * Get the next line from a log file.
+ * Return whether the seek actually occurred.
  */
-static char *nextLine(struct logfile *lf)
+static bool nextLine(struct logfile *lf)
 {
-	char *p=NULL;
+	bool rv=false;
 
 	assert(lf != NULL);
 
@@ -286,27 +287,27 @@ static char *nextLine(struct logfile *lf)
 			assert(logfileOpened == OK);
 		}
 		/* Recurse to skip a line */
-		p=nextLine(lf);
-		assert(p!=NULL);
+		rv=nextLine(lf);
+		assert(rv);
 	}
 
-	p=myGzgets(lf);
-	if(p!=Z_NULL) {
-		/* At this point, p and lf->line represent the same location */
+	if(myGzgets(lf)) {
+		rv=true;
+		char *p=lf->line;
 		/* Make sure the line is short enough */
 		assert(strlen(p) < LINE_BUFFER);
 		/* Make sure we read a line */
 		if(p[strlen(p)-1] != '\n') {
 			fprintf(stderr, "*** BROKEN LOG ENTRY IN %s (no newline)\n",
 				lf->filename);
-			p=NULL;
+			rv=false;
 		} else if(parseTimestamp(lf) == -1) {
 			/* If we can't parse the timestamp, give up */
-			p=NULL;
+			rv=false;
 		}
 	}
 
-	return p == NULL ? NULL : lf->line;
+	return rv;
 }
 
 static void closeLogfile(struct logfile *lf)
@@ -374,7 +375,6 @@ static void destroyLogfile(struct logfile *lf)
 struct logfile *createLogfile(const char *filename)
 {
 	struct logfile *rv=NULL;
-	char *p=NULL;
 
 	rv=(struct logfile *)calloc(1, sizeof(struct logfile));
 	assert(rv != NULL);
@@ -388,14 +388,13 @@ struct logfile *createLogfile(const char *filename)
 		rv=NULL;
 	} else {
 		/* If it's opened succesfully, read the next (first) line */
-		p=nextLine(rv);
-		/* If nextLine didn't return a record, this entry is invalid. */
-		if(p == NULL) {
+		if(!nextLine(rv)) {
+			/* If nextLine didn't return a record, this entry is invalid. */
 			destroyLogfile(rv);
 			rv=NULL;
 		} else {
 			/* Otherwise, it's valid and we'll proceed, but close it. */
-			switch(identifyLog(p)) {
+			switch(identifyLog(rv->line)) {
 				case COMMON:
 					fprintf(stderr, "**** %s is a common log file\n", filename);
 					rv->outputLine=outputLineDirect;
@@ -408,7 +407,7 @@ struct logfile *createLogfile(const char *filename)
 					fprintf(stderr, "! Can't identify type of %s\n", filename);
 					break;
 				default:
-					assert(0);
+					assert(false);
 			}
 
 			if(rv->outputLine == NULL) {
@@ -444,15 +443,13 @@ struct logfile *currentRecord(const log_queue& queue)
 void skipRecord(log_queue& queue)
 {
 	struct logfile *oldEntry=NULL;
-	char *p;
 
 	if(!queue.empty()) {
 		oldEntry=queue.top();
 		queue.pop();
 
-		p=nextLine(oldEntry);
 		/* If stuff comes back, reinsert the old entry */
-		if(p!=NULL) {
+		if(nextLine(oldEntry)) {
 			queue.push(oldEntry);
 		} else {
 			destroyLogfile(oldEntry);
