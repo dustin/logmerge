@@ -1,5 +1,7 @@
 opts=Options()
 
+opts.Add(BoolOption('PROFILE', 'Compile with profiling.', 0))
+
 env = Environment(options = opts)
 Help(opts.GenerateHelpText(env))
 
@@ -12,6 +14,10 @@ if ARGUMENTS.get('USE_ASSERT', 0):
 
 env.Append(CCFLAGS = '-g -O2 -Wall -Werror')
 env.Append(LINKFLAGS = '-g')
+
+if ARGUMENTS.get('PROFILE', 0):
+	env.Append(CCFLAGS = '-pg')
+	env.Append(LINKFLAGS = '-pg')
 
 env.conf = Configure(env)
 
