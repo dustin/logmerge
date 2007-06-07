@@ -1,7 +1,5 @@
 /*
  * Copyright (c) 2002  Dustin Sallings <dustin@spy.net>
- *
- * $Id: logmerge.c,v 1.10 2005/03/28 19:10:39 dustin Exp $
  */
 
 #include <iostream>

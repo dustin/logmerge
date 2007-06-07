@@ -1,11 +1,9 @@
 /*
- * Copyright (c) 2002  Dustin Sallings
- *
- * $Id: logmerge.h,v 1.3 2003/10/07 09:13:55 dustin Exp $
+ * Copyright (c) 2002-2007  Dustin Sallings
  */
 
-#ifndef LOGMERGE_H
-#define LOGMERGE_H 1
+#ifndef LOGFILES_H
+#define LOGFILES_H 1
 
 #include <iostream>
 #include <queue>
@@ -72,4 +70,4 @@ int openLogfile(struct logfile *lf);
 
 } // extern C
 
-#endif /* LOGMERGE_H */
+#endif /* LOGFILES_H */
