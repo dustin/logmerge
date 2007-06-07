@@ -116,7 +116,7 @@ S3_UA		8
 static void outputLineDirect(struct logfile *lf) {
 	assert(lf != NULL);
 	assert(lf->line != NULL);
-	printf("%s", lf->line);
+	fwrite(lf->line, lf->lineLength, 1, stdout);
 }
 
 /**
