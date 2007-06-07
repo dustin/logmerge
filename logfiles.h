@@ -13,6 +13,12 @@
 #include <sys/types.h>
 #include <zlib.h>
 
+#ifdef USE_ASSERT
+#define TESTED_STATIC
+#else
+#define TESTED_STATIC static
+#endif
+
 #define OK 1
 #define ERROR -1
 
@@ -67,6 +73,12 @@ struct logfile *createLogfile(const char *filename);
 void skipRecord(log_queue&);
 /* Open a logfile */
 int openLogfile(struct logfile *lf);
+
+/* Parse a month.  This is generally static, but exposed when assertions are
+ enabled. */
+#ifdef USE_ASSERT
+TESTED_STATIC int parseMonth(const char*);
+#endif
 
 } // extern C
 
