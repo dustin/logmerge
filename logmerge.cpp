@@ -17,7 +17,7 @@
 
 namespace logmerge {
 	static void initLogfiles(log_queue&, int, char **);
-	static void outputLogfiles(log_queue);
+	static void outputLogfiles(log_queue&);
 	static void initLogfile(log_queue&, const char*);
 }
 
@@ -49,7 +49,7 @@ static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 	}
 }
 
-static void logmerge::outputLogfiles(log_queue queue)
+static void logmerge::outputLogfiles(log_queue& queue)
 {
 	int entries=0;
 	struct logfile *lf=NULL;
@@ -57,7 +57,7 @@ static void logmerge::outputLogfiles(log_queue queue)
 	while(!queue.empty()) {
 		entries++;
 
-		lf=currentRecord(queue);
+		lf=queue.top();
 		assert(lf!=NULL);
 		if(! lf->isOpen) {
 			openLogfile(lf);

@@ -61,8 +61,6 @@ typedef std::priority_queue<struct logfile *,
 
 /* Get a new logfile */
 struct logfile *createLogfile(const char *filename);
-/* Get the current record from the list */
-struct logfile *currentRecord(const log_queue&);
 /* Skip to the next record in the list */
 void skipRecord(log_queue&);
 /* Open a logfile */

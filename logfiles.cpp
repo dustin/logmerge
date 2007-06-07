@@ -456,36 +456,21 @@ struct logfile *createLogfile(const char *filename)
 }
 
 /**
- * Get the current record from the first entry in the linked list.
- */
-struct logfile *currentRecord(const log_queue& queue)
-{
-	struct logfile *rv=NULL;
-
-	if(!queue.empty()) {
-		rv=queue.top();
-	}
-
-	return(rv);
-}
-
-/**
  * Get rid of the first entry in the log list, and reinsert it somewhere
  * that makes sense, or throw it away if it's no longer necessary.
  */
 void skipRecord(log_queue& queue)
 {
 	struct logfile *oldEntry=NULL;
+	assert(!queue.empty());
 
-	if(!queue.empty()) {
-		oldEntry=queue.top();
-		queue.pop();
+	oldEntry=queue.top();
+	queue.pop();
 
-		/* If stuff comes back, reinsert the old entry */
-		if(nextLine(oldEntry)) {
-			queue.push(oldEntry);
-		} else {
-			destroyLogfile(oldEntry);
-		}
+	/* If stuff comes back, reinsert the old entry */
+	if(nextLine(oldEntry)) {
+		queue.push(oldEntry);
+	} else {
+		destroyLogfile(oldEntry);
 	}
 }
