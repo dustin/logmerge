@@ -13,6 +13,8 @@
 
 #include "logfiles.h"
 
+#define STDOUT_BUF_SIZE 1024*1024
+
 namespace logmerge {
 	static void initLogfiles(log_queue&, int, char **);
 	static void outputLogfiles(log_queue);
@@ -74,6 +76,8 @@ static void logmerge::outputLogfiles(log_queue queue)
 int main(int argc, char **argv)
 {
 	log_queue queue;
+
+	setvbuf(stdout, NULL, _IOFBF, STDOUT_BUF_SIZE);
 
 	logmerge::initLogfiles(queue, argc, argv);
 	logmerge::outputLogfiles(queue);
