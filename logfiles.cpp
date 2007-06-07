@@ -31,12 +31,6 @@
 
 boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
-bool TimeCmp::operator() (const struct logfile* a, const struct logfile* b)
-	const
-{
-	return a->timestamp > b->timestamp;
-}
-
 static bool myGzgets(struct logfile *lf)
 {
 	char *rv=lf->line;

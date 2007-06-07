@@ -52,7 +52,9 @@ struct logfile {
 
 class TimeCmp {
 public:
-	bool operator() (const struct logfile* a, const struct logfile* b) const;
+	bool operator() (const struct logfile* a, const struct logfile* b) const {
+		return a->timestamp > b->timestamp;
+	}
 };
 
 typedef std::priority_queue<struct logfile *,
