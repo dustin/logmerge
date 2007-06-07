@@ -70,12 +70,46 @@ static void logmerge::outputLogfiles(log_queue& queue)
 	std::cerr << "Read " << entries << " entries" << std::endl;
 }
 
+#ifdef USE_ASSERT
+static void testMonthParsing() {
+	char *months[] = {
+		"Jan/", "Feb/", "Mar/", "Apr/", "May/", "Jun/",
+		"Jul/", "Aug/", "Sep/", "Oct/", "Nov/", "Dec/"
+	};
+	for(int i=0; i<12; i++) {
+		for(int j=0; j<10; j++) {
+			int rv=parseMonth(months[i]);
+			if(i != rv) {
+				std::cerr << "Expected " << i << " for "
+					<< months[i] << " got " << rv << std::endl;
+				abort();
+			}
+		}
+	}
+	for(int j=0; j<10; j++) {
+		for(int i=0; i<12; i++) {
+			int rv=parseMonth(months[i]);
+			if(i != rv) {
+				std::cerr << "Expected " << i << " for "
+					<< months[i] << " got " << rv << std::endl;
+				abort();
+			}
+		}
+	}
+}
+#else
+static void testMonthParsing() {
+}
+#endif
+
 /**
  * The main.
  */
 int main(int argc, char **argv)
 {
 	log_queue queue;
+
+	testMonthParsing();
 
 	setvbuf(stdout, NULL, _IOFBF, STDOUT_BUF_SIZE);
 
