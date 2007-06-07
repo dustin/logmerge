@@ -45,6 +45,8 @@ static bool myGzgets(struct logfile *lf)
 	int s=LINE_BUFFER;
 	int bytesRead=0;
 
+	lf->lineLength=0;
+
 	for(;;) {
 		if(lf->gzBufCur > lf->gzBufEnd || lf->gzBufEnd == NULL) {
 			/* Fetch some more stuff */
@@ -59,6 +61,7 @@ static bool myGzgets(struct logfile *lf)
 		/* Make sure we do not get too many characters */
 		if(--s > 0) {
 			*rv++ = *lf->gzBufCur;
+			lf->lineLength++;
 			if(*(lf->gzBufCur++) == '\n') {
 				*rv=0x00;
 				return(true);
@@ -240,7 +243,7 @@ static time_t parseTimestamp(struct logfile *lf)
 	try {
 
 		/* The shortest line I can parse is about 32 characters. */
-		if(strlen(p) < 32) {
+		if(lf->lineLength < 32) {
 			/* This is a broken entry */
 			fprintf(stderr, "Broken log entry (too short):  %s\n", p);
 		} else if(index(p, '[') != NULL) {
@@ -249,7 +252,7 @@ static time_t parseTimestamp(struct logfile *lf)
 
 			p=index(p, '[');
 			/* Input validation */
-			if(p == NULL || strlen(p) < 32) {
+			if(p == NULL || lf->lineLength < 32) {
 				fprintf(stderr, "invalid log line:  %s\n", lf->line);
 				throw BadTimestamp();
 			}
@@ -326,9 +329,9 @@ static bool nextLine(struct logfile *lf)
 		rv=true;
 		char *p=lf->line;
 		/* Make sure the line is short enough */
-		assert(strlen(p) < LINE_BUFFER);
+		assert(lf->lineLength < LINE_BUFFER);
 		/* Make sure we read a line */
-		if(p[strlen(p)-1] != '\n') {
+		if(p[lf->lineLength-1] != '\n') {
 			fprintf(stderr, "*** BROKEN LOG ENTRY IN %s (no newline)\n",
 				lf->filename);
 			rv=false;
