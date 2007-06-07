@@ -156,25 +156,25 @@ struct date_str {
 /* Convert a three character month to the numeric value */
 TESTED_STATIC int parseMonth(const char *input) {
     int rv=-1;
-	struct date_str tmp;
-	static struct date_str dates[]={
-		{"Jan/", 0}, {"Feb/", 1}, {"Mar/", 2}, {"Apr/", 3}, {"May/", 4},
-		{"Jun/", 5}, {"Jul/", 6}, {"Aug/", 7}, {"Sep/", 8}, {"Oct/", 9},
-		{"Nov/", 10}, {"Dec/", 11}
-	};
+	int inputInt=0;
 
-	for(int i=0; i<12; i++) {
-		if(memcmp(dates[i].datestr, input, 4) == 0) {
-			rv=dates[i].val;
-			// If it's not already, move it to the front of the list.  It'll
-			// probably be in use for a while.
-			if(i != 0) {
-				tmp=dates[0];
-				dates[0]=dates[i];
-				dates[i]=tmp;
-			}
-			break;
-		}
+	for(int i=0; i<4 && input[i]; i++) {
+		inputInt = (inputInt << 8) | input[i];
+	}
+
+	switch(inputInt) {
+		case 'Jan/': rv=0; break;
+		case 'Feb/': rv=1; break;
+		case 'Mar/': rv=2; break;
+		case 'Apr/': rv=3; break;
+		case 'May/': rv=4; break;
+		case 'Jun/': rv=5; break;
+		case 'Jul/': rv=6; break;
+		case 'Aug/': rv=7; break;
+		case 'Sep/': rv=8; break;
+		case 'Oct/': rv=9; break;
+		case 'Nov/': rv=10; break;
+		case 'Dec/': rv=11; break;
 	}
 
 	return rv;
