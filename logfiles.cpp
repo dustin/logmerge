@@ -143,6 +143,7 @@ int openLogfile(struct logfile *lf)
 	/* Allocate the line buffer */
 	lf->line=(char*)calloc(1, LINE_BUFFER);
 	assert(lf->line != NULL);
+	lf->lineLength=0;
 
 	/* Allocate the read buffer */
 	lf->gzBuf=(char*)calloc(1, GZBUFFER);
