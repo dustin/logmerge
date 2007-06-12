@@ -31,7 +31,8 @@ if not env.conf.CheckLibWithHeader('boost_regex',
 	Exit(1)
 
 env = env.conf.Finish()
-env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp'],
+env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp',
+	'minizip/ioapi.c', 'minizip/unzip.c'],
 	LIBS=['z', 'boost_regex'])
 
 # vim: syntax=python
