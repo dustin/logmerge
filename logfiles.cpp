@@ -69,8 +69,8 @@ static bool myGzgets(struct logfile *lf)
 }
 
 /* Returns a value from logTypes */
-static int identifyLog(const char *line) {
-	int rv=UNKNOWN;
+static enum logType identifyLog(const char *line) {
+	enum logType rv=UNKNOWN;
 	assert(line != NULL);
 
 	if(boost::regex_search(line, amazon_s3_regex)) {
