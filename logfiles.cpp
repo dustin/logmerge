@@ -153,6 +153,19 @@ struct date_str {
 	int val;
 };
 
+#define MONTH_JAN       (((((('J'<<8)|'a')<<8)|'n')<<8)|'/')
+#define MONTH_FEB       (((((('F'<<8)|'e')<<8)|'b')<<8)|'/')
+#define MONTH_MAR       (((((('M'<<8)|'a')<<8)|'r')<<8)|'/')
+#define MONTH_APR       (((((('A'<<8)|'p')<<8)|'r')<<8)|'/')
+#define MONTH_MAY       (((((('M'<<8)|'a')<<8)|'y')<<8)|'/')
+#define MONTH_JUN       (((((('J'<<8)|'u')<<8)|'n')<<8)|'/')
+#define MONTH_JUL       (((((('J'<<8)|'u')<<8)|'l')<<8)|'/')
+#define MONTH_AUG       (((((('A'<<8)|'u')<<8)|'g')<<8)|'/')
+#define MONTH_SEP       (((((('S'<<8)|'e')<<8)|'p')<<8)|'/')
+#define MONTH_OCT       (((((('O'<<8)|'c')<<8)|'t')<<8)|'/')
+#define MONTH_NOV       (((((('N'<<8)|'o')<<8)|'v')<<8)|'/')
+#define MONTH_DEC       (((((('D'<<8)|'e')<<8)|'c')<<8)|'/')
+
 /* Convert a three character month to the numeric value */
 TESTED_STATIC int parseMonth(const char *input) {
     int rv=-1;
@@ -163,18 +176,18 @@ TESTED_STATIC int parseMonth(const char *input) {
 	}
 
 	switch(inputInt) {
-		case 'Jan/': rv=0; break;
-		case 'Feb/': rv=1; break;
-		case 'Mar/': rv=2; break;
-		case 'Apr/': rv=3; break;
-		case 'May/': rv=4; break;
-		case 'Jun/': rv=5; break;
-		case 'Jul/': rv=6; break;
-		case 'Aug/': rv=7; break;
-		case 'Sep/': rv=8; break;
-		case 'Oct/': rv=9; break;
-		case 'Nov/': rv=10; break;
-		case 'Dec/': rv=11; break;
+		case MONTH_JAN: rv=0; break;
+		case MONTH_FEB: rv=1; break;
+		case MONTH_MAR: rv=2; break;
+		case MONTH_APR: rv=3; break;
+		case MONTH_MAY: rv=4; break;
+		case MONTH_JUN: rv=5; break;
+		case MONTH_JUL: rv=6; break;
+		case MONTH_AUG: rv=7; break;
+		case MONTH_SEP: rv=8; break;
+		case MONTH_OCT: rv=9; break;
+		case MONTH_NOV: rv=10; break;
+		case MONTH_DEC: rv=11; break;
 	}
 
 	return rv;
