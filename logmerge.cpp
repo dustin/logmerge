@@ -3,6 +3,7 @@
  */
 
 #include <iostream>
+#include <string.h>
 
 #ifdef USE_ASSERT
 # include <assert.h>
