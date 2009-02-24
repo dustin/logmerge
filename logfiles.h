@@ -41,7 +41,7 @@ struct logfile {
 	/* The current record */
 	char *line;
 	/* Look!  I know pascal! */
-	int lineLength;
+	size_t lineLength;
 	/* Function to output the current line */
 	void (*outputLine)(struct logfile *);
 	/* The timestamp of the current record */

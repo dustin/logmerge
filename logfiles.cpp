@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sysexits.h>
 
 #ifdef USE_ASSERT
 # include <assert.h>
@@ -110,7 +111,10 @@ S3_UA		8
 static void outputLineDirect(struct logfile *lf) {
 	assert(lf != NULL);
 	assert(lf->line != NULL);
-	fwrite(lf->line, lf->lineLength, 1, stdout);
+	if(fwrite(lf->line, lf->lineLength, 1, stdout) < lf->lineLength) {
+		perror("fwrite");
+		exit(EX_IOERR);
+	}
 }
 
 /**
