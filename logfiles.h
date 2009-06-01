@@ -33,7 +33,17 @@ enum logType {
 };
 
 /* The logfile itself */
-struct logfile {
+class LogFile {
+ public:
+
+    LogFile(const char *);
+
+    LogFile(const LogFile& lf) {
+        throw "Copying a logfile...";
+    }
+
+    ~LogFile();
+
     /* The filename of this log entry */
     char *filename;
     /* The current record */
@@ -41,7 +51,7 @@ struct logfile {
     /* Look!  I know pascal! */
     size_t lineLength;
     /* Function to output the current line */
-    void (*outputLine)(struct logfile *);
+    void (*outputLine)(LogFile&);
     /* The timestamp of the current record */
     time_t timestamp;
     /* Indicate whether this logfile is open */
@@ -56,21 +66,17 @@ struct logfile {
 
 class TimeCmp {
  public:
-    bool operator() (const struct logfile* a, const struct logfile* b) const {
+    bool operator() (const LogFile *a, const LogFile *b) const {
         return a->timestamp > b->timestamp;
     }
 };
 
-typedef std::priority_queue<struct logfile *,
-    std::vector<struct logfile *>, TimeCmp>
-    log_queue;
+typedef std::priority_queue<LogFile*, std::vector<LogFile*>, TimeCmp> log_queue;
 
-/* Get a new logfile */
-struct logfile *createLogfile(const char *filename);
 /* Skip to the next record in the list */
 void skipRecord(log_queue&);
 /* Open a logfile */
-int openLogfile(struct logfile *lf);
+int openLogfile(LogFile&);
 
 /* Parse a month.  This is generally static, but exposed when assertions are
    enabled. */

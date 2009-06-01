@@ -32,30 +32,30 @@
 
 boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
-static bool myGzgets(struct logfile *lf)
+static bool myGzgets(LogFile& lf)
 {
-    char *rv=lf->line;
+    char *rv=lf.line;
     int s=LINE_BUFFER;
     int bytesRead=0;
 
-    lf->lineLength=0;
+    lf.lineLength=0;
 
     for(;;) {
-        if(lf->gzBufCur > lf->gzBufEnd || lf->gzBufEnd == NULL) {
+        if(lf.gzBufCur > lf.gzBufEnd || lf.gzBufEnd == NULL) {
             /* Fetch some more stuff */
-            bytesRead=gzread(lf->input, lf->gzBuf, GZBUFFER);
-            lf->gzBufEnd=bytesRead + lf->gzBuf - 1;
+            bytesRead=gzread(lf.input, lf.gzBuf, GZBUFFER);
+            lf.gzBufEnd=bytesRead + lf.gzBuf - 1;
             /* Make sure we got something */
             if(bytesRead == 0) {
                 return(false);
             }
-            lf->gzBufCur=lf->gzBuf;
+            lf.gzBufCur=lf.gzBuf;
         }
         /* Make sure we do not get too many characters */
         if(--s > 0) {
-            *rv++ = *lf->gzBufCur;
-            lf->lineLength++;
-            if(*(lf->gzBufCur++) == '\n') {
+            *rv++ = *lf.gzBufCur;
+            lf.lineLength++;
+            if(*(lf.gzBufCur++) == '\n') {
                 *rv=0x00;
                 return(true);
             }
@@ -82,11 +82,10 @@ static enum logType identifyLog(const char *line) {
     return rv;
 }
 
-static void outputLineS3(struct logfile *lf) {
+static void outputLineS3(LogFile& lf) {
     boost::cmatch what;
 
-    assert(lf);
-    assert(lf->line);
+    assert(lf.line);
 
     /*
     // Positions as defined in the regex
@@ -100,21 +99,20 @@ static void outputLineS3(struct logfile *lf) {
     S3_UA       8
     */
 
-    if(boost::regex_search(lf->line, what, amazon_s3_regex)) {
+    if(boost::regex_search(lf.line, what, amazon_s3_regex)) {
         std::ostream_iterator<char> out(std::cout);
         what.format(out, "$3 - - [$2] $4 $5 $6 $7 $8 $1\n");
     } else {
-        fprintf(stderr, "*** S3: Failed to match ``%s''\n", lf->line);
+        fprintf(stderr, "*** S3: Failed to match ``%s''\n", lf.line);
     }
 }
 
-static void outputLineDirect(struct logfile *lf) {
-    assert(lf != NULL);
-    assert(lf->line != NULL);
-    size_t bytes_written = fwrite(lf->line, 1, lf->lineLength, stdout);
-    if(bytes_written < lf->lineLength) {
+static void outputLineDirect(LogFile& lf) {
+    assert(lf.line != NULL);
+    size_t bytes_written = fwrite(lf.line, 1, lf.lineLength, stdout);
+    if(bytes_written < lf.lineLength) {
         fprintf(stderr, "Short write: only wrote %d bytes out of %d\n",
-                (unsigned int)bytes_written, (unsigned int)lf->lineLength);
+                (unsigned int)bytes_written, (unsigned int)lf.lineLength);
         perror("fwrite");
         exit(EX_IOERR);
     }
@@ -123,33 +121,33 @@ static void outputLineDirect(struct logfile *lf) {
 /**
  * Open a logfile.
  */
-int openLogfile(struct logfile *lf)
+int openLogfile(LogFile& lf)
 {
     int rv=ERROR;
-    assert(lf != NULL);
 
-    assert(! lf->isOpen);
+    assert(lf.filename);
+    assert(! lf.isOpen);
 
-    fprintf(stderr, "*** Opening %s\n", lf->filename);
+    fprintf(stderr, "*** Opening ``%s''\n", lf.filename);
 
-    lf->input=gzopen(lf->filename, "r");
+    lf.input=gzopen(lf.filename, "r");
 
-    if(lf->input != NULL) {
-        lf->isOpen=true;
+    if(lf.input != NULL) {
+        lf.isOpen=true;
         rv=OK;
     }
 
     /* Allocate the line buffer */
-    lf->line=(char*)calloc(1, LINE_BUFFER);
-    assert(lf->line != NULL);
-    lf->lineLength=0;
+    lf.line=(char*)calloc(1, LINE_BUFFER);
+    assert(lf.line != NULL);
+    lf.lineLength=0;
 
     /* Allocate the read buffer */
-    lf->gzBuf=(char*)calloc(1, GZBUFFER);
-    assert(lf->gzBuf != NULL);
+    lf.gzBuf=(char*)calloc(1, GZBUFFER);
+    assert(lf.gzBuf != NULL);
 
-    lf->gzBufCur=NULL;
-    lf->gzBufEnd=NULL;
+    lf.gzBufCur=NULL;
+    lf.gzBufEnd=NULL;
 
     return(rv);
 }
@@ -206,21 +204,20 @@ class BadTimestamp : public std::exception {
     }
 };
 
-static time_t parseTimestamp(struct logfile *lf)
+static time_t parseTimestamp(LogFile& lf)
 {
     char *p;
 
-    assert(lf != NULL);
-    assert(lf->line != NULL);
+    assert(lf.line != NULL);
 
-    lf->timestamp=-1;
+    lf.timestamp=-1;
 
-    p=lf->line;
+    p=lf.line;
 
     try {
 
         /* The shortest line I can parse is about 32 characters. */
-        if(lf->lineLength < 32) {
+        if(lf.lineLength < 32) {
             /* This is a broken entry */
             fprintf(stderr, "Broken log entry (too short):  %s\n", p);
         } else if(index(p, '[') != NULL) {
@@ -229,8 +226,8 @@ static time_t parseTimestamp(struct logfile *lf)
 
             p=index(p, '[');
             /* Input validation */
-            if(p == NULL || lf->lineLength < 32) {
-                fprintf(stderr, "invalid log line:  %s\n", lf->line);
+            if(p == NULL || lf.lineLength < 32) {
+                fprintf(stderr, "invalid log line:  %s\n", lf.line);
                 throw BadTimestamp();
             }
 
@@ -252,7 +249,7 @@ static time_t parseTimestamp(struct logfile *lf)
             if(p[2] != ' ') {
                 fprintf(stderr,
                         "log line is starting to not look like CLF: %s\n",
-                        lf->line);
+                        lf.line);
                 throw BadTimestamp();
             }
 
@@ -261,7 +258,7 @@ static time_t parseTimestamp(struct logfile *lf)
             /* Let mktime guess the timezone */
             tm.tm_isdst=-1;
 
-            lf->timestamp=mktime(&tm);
+            lf.timestamp=mktime(&tm);
 
         } else {
             fprintf(stderr, "Unknown log format:  %s\n", p);
@@ -271,24 +268,22 @@ static time_t parseTimestamp(struct logfile *lf)
         // Damn.
     }
 
-    if(lf->timestamp < 0) {
-        fprintf(stderr, "* Error parsing timestamp from %s", lf->line);
+    if(lf.timestamp < 0) {
+        fprintf(stderr, "* Error parsing timestamp from %s", lf.line);
     }
 
-    return(lf->timestamp);
+    return(lf.timestamp);
 }
 
 /**
  * Get the next line from a log file.
  * Return whether the seek actually occurred.
  */
-static bool nextLine(struct logfile *lf)
+static bool nextLine(LogFile& lf)
 {
     bool rv=false;
 
-    assert(lf != NULL);
-
-    if(!lf->isOpen) {
+    if(!lf.isOpen) {
         int logfileOpened=openLogfile(lf);
         /* This looks a little awkward, but it's the only way I can both
          * avoid the side effect of having assert perform the task and
@@ -304,13 +299,13 @@ static bool nextLine(struct logfile *lf)
 
     if(myGzgets(lf)) {
         rv=true;
-        char *p=lf->line;
+        char *p=lf.line;
         /* Make sure the line is short enough */
-        assert(lf->lineLength < LINE_BUFFER);
+        assert(lf.lineLength < LINE_BUFFER);
         /* Make sure we read a line */
-        if(p[lf->lineLength-1] != '\n') {
+        if(p[lf.lineLength-1] != '\n') {
             fprintf(stderr, "*** BROKEN LOG ENTRY IN %s (no newline)\n",
-                    lf->filename);
+                    lf.filename);
             rv=false;
         } else if(parseTimestamp(lf) == -1) {
             /* If we can't parse the timestamp, give up */
@@ -321,98 +316,88 @@ static bool nextLine(struct logfile *lf)
     return rv;
 }
 
-static void closeLogfile(struct logfile *lf)
+static void closeLogfile(LogFile& lf)
 {
     int gzerrno=0;
 
-    assert(lf != NULL);
-    assert(lf->input != NULL);
-    assert(lf->filename != NULL);
+    assert(lf.input != NULL);
+    assert(lf.filename != NULL);
 
-    fprintf(stderr, "*** Closing %s\n", lf->filename);
+    fprintf(stderr, "*** Closing %s\n", lf.filename);
 
     /* Free the line buffer */
-    if(lf->line != NULL) {
-        free(lf->line);
-        lf->line=NULL;
+    if(lf.line != NULL) {
+        free(lf.line);
+        lf.line=NULL;
     }
 
-    gzerrno=gzclose(lf->input);
+    gzerrno=gzclose(lf.input);
     if(gzerrno!=0) {
-        gzerror(lf->input, &gzerrno);
+        gzerror(lf.input, &gzerrno);
     }
-    lf->isOpen=false;
+    lf.isOpen=false;
 
-    if(lf->gzBuf != NULL) {
-        free(lf->gzBuf);
-        lf->gzBuf = NULL;
+    if(lf.gzBuf != NULL) {
+        free(lf.gzBuf);
+        lf.gzBuf = NULL;
     }
 
-    lf->gzBufCur=NULL;
-    lf->gzBufEnd=NULL;
+    lf.gzBufCur=NULL;
+    lf.gzBufEnd=NULL;
 }
 
 /**
  * Get rid of a logfile that's no longer needed.
  */
-static void destroyLogfile(struct logfile *lf)
+LogFile::~LogFile()
 {
-    assert(lf != NULL);
+    fprintf(stderr, "** Destroying %s\n", filename);
 
-    fprintf(stderr, "** Destroying %s\n", lf->filename);
-
-    if(lf->isOpen) {
-        closeLogfile(lf);
+    if(isOpen) {
+        closeLogfile(*this);
     }
 
     /* Free the parts */
-    if(lf->filename!=NULL) {
-        free(lf->filename);
+    if(filename!=NULL) {
+        free(filename);
     }
-    if(lf->line != NULL) {
-        free(lf->line);
+    if(line != NULL) {
+        free(line);
     }
-    if(lf->gzBuf != NULL) {
-        free(lf->gzBuf);
+    if(gzBuf != NULL) {
+        free(gzBuf);
     }
-
-    /* Lastly, free the container itself. */
-    free(lf);
 }
 
 /**
  * Create a new logfile.
  */
-struct logfile *createLogfile(const char *filename)
+LogFile::LogFile(const char *inFilename)
 {
-    struct logfile *rv=NULL;
+    assert(inFilename);
+    filename=(char *)strdup(inFilename);
+    assert(filename);
 
-    rv=(struct logfile *)calloc(1, sizeof(struct logfile));
-    assert(rv != NULL);
-
-    rv->filename=(char *)strdup(filename);
-    assert(rv->filename != NULL);
+    isOpen = false;
 
     /* Try to open the logfile */
-    if(openLogfile(rv) != OK) {
-        destroyLogfile(rv);
-        rv=NULL;
+    if(openLogfile(*this) != OK) {
+        throw std::runtime_error("Error opening logfile.");
     } else {
         /* If it's opened succesfully, read the next (first) line */
-        if(!nextLine(rv)) {
+        if(!nextLine(*this)) {
             /* If nextLine didn't return a record, this entry is invalid. */
-            destroyLogfile(rv);
-            rv=NULL;
+            throw std::runtime_error("Error trying to read a record.");
         } else {
             /* Otherwise, it's valid and we'll proceed, but close it. */
-            switch(identifyLog(rv->line)) {
+            switch(identifyLog(line)) {
             case COMMON:
                 fprintf(stderr, "**** %s is a common log file\n", filename);
-                rv->outputLine=outputLineDirect;
+                outputLine=outputLineDirect;
                 break;
             case AMAZON_S3:
                 fprintf(stderr, "**** %s is an s3 log file\n", filename);
-                rv->outputLine=outputLineS3;
+                outputLine=outputLineS3;
                 break;
             case UNKNOWN:
                 fprintf(stderr, "! Can't identify type of %s\n", filename);
@@ -421,16 +406,13 @@ struct logfile *createLogfile(const char *filename)
                 assert(false);
             }
 
-            if(rv->outputLine == NULL) {
-                destroyLogfile(rv);
-                rv=NULL;
+            if(outputLine == NULL) {
+                throw std::runtime_error("Found no output line.");
             } else {
-                closeLogfile(rv);
+                closeLogfile(*this);
             }
         }
     }
-
-    return(rv);
 }
 
 /**
@@ -439,16 +421,16 @@ struct logfile *createLogfile(const char *filename)
  */
 void skipRecord(log_queue& queue)
 {
-    struct logfile *oldEntry=NULL;
     assert(!queue.empty());
 
-    oldEntry=queue.top();
+    LogFile *oldEntry=queue.top();
+    assert(oldEntry);
     queue.pop();
 
     /* If stuff comes back, reinsert the old entry */
-    if(nextLine(oldEntry)) {
+    if(nextLine(*oldEntry)) {
         queue.push(oldEntry);
     } else {
-        destroyLogfile(oldEntry);
+        delete oldEntry;
     }
 }

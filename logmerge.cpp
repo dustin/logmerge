@@ -23,13 +23,8 @@ namespace logmerge {
 }
 
 static void logmerge::initLogfile(log_queue& queue, const char *filename) {
-    struct logfile *lf=createLogfile(filename);
-    if(lf!=NULL) {
-        queue.push(lf);
-    } else {
-        std::cerr << "Error opening logfile ``" << filename
-                  << "''" << std::endl;
-    }
+    LogFile *lf=new LogFile(filename);
+    queue.push(lf);
 }
 
 /* Initialize all of the logfiles */
@@ -53,18 +48,17 @@ static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
 static void logmerge::outputLogfiles(log_queue& queue)
 {
     int entries=0;
-    struct logfile *lf=NULL;
 
     while(!queue.empty()) {
         entries++;
 
-        lf=queue.top();
-        assert(lf!=NULL);
+        LogFile *lf=queue.top();
+        assert(lf);
         if(! lf->isOpen) {
-            openLogfile(lf);
+            openLogfile(*lf);
         }
 
-        lf->outputLine(lf);
+        lf->outputLine(*lf);
         skipRecord(queue);
     }
 
