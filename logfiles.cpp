@@ -3,6 +3,7 @@
  */
 
 #include <iostream>
+#include <stdexcept>
 
 #include <stdio.h>
 #include <time.h>
@@ -18,19 +19,11 @@
 # define assert(a)
 #endif
 
-#include <boost/regex.hpp>
-
 #include <zlib.h>
 
 #include "logfiles.h"
 
 #define NOTREACHED 0
-
-#define AMAZON_S3_REGEX "^[0-9a-f]+ ([-A-z0-9_\\.]+) \\[(.*)\\] ([0-9\\.]+) " \
-    "[0-9a-f]+ [0-9A-F]+ \\S+ \\S+ (\"[^\"]*\") (\\d+) [-A-z0-9]+ ([-0-9]+) " \
-    "[-0-9]+ \\d+ [-0-9]+ (\"[^\"]*\") (\"[^\"]*\")"
-
-boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
 bool LogFile::myGzgets()
 {
@@ -67,55 +60,6 @@ bool LogFile::myGzgets()
 
     assert(NOTREACHED);
     return(rv);
-}
-
-/* Returns a value from logTypes */
-static enum logType identifyLog(const char *line) {
-    enum logType rv=UNKNOWN;
-    assert(line != NULL);
-
-    if(boost::regex_search(line, amazon_s3_regex)) {
-        rv=AMAZON_S3;
-    } else {
-        rv=COMMON;
-    }
-    return rv;
-}
-
-void S3LineOutputter::writeLine(const char *line, size_t length) {
-    boost::cmatch what;
-
-    assert(line);
-
-    /*
-    // Positions as defined in the regex
-    S3_BUCKET   1
-    S3_DATE     2
-    S3_IP       3
-    S3_REQ      4
-    S3_STATUS   5
-    S3_SIZE     6
-    S3_REFER    7
-    S3_UA       8
-    */
-
-    if(boost::regex_search(line, what, amazon_s3_regex)) {
-        std::ostream_iterator<char> out(std::cout);
-        what.format(out, "$3 - - [$2] $4 $5 $6 $7 $8 $1\n");
-    } else {
-        fprintf(stderr, "*** S3: Failed to match ``%s''\n", line);
-    }
-}
-
-void DirectLineOutputter::writeLine(const char *line, size_t length) {
-    assert(line != NULL);
-    size_t bytes_written = fwrite(line, 1, length, stdout);
-    if(bytes_written < length) {
-        fprintf(stderr, "Short write: only wrote %d bytes out of %d\n",
-                (unsigned int)bytes_written, (unsigned int)length);
-        perror("fwrite");
-        exit(EX_IOERR);
-    }
 }
 
 /**

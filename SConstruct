@@ -39,6 +39,7 @@ else:
     build_libs.append('boost_regex')
 
 env = env.conf.Finish()
-env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp'], LIBS=build_libs)
+env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp', 'outputters.cpp'],
+            LIBS=build_libs)
 
 # vim: syntax=python
