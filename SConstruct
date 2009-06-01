@@ -27,16 +27,18 @@ env.conf = Configure(env)
 
 build_libs=['z']
 
-if not env.conf.CheckLibWithHeader('boost_regex',
-                                   'boost/regex.hpp', 'c++'):
-    if not env.conf.CheckLibWithHeader('boost_regex-mt',
-                                       'boost/regex.hpp', 'c++'):
-        print 'Boost regex is required'
-        Exit(1)
+def getBoostLib(lib, header):
+
+    if not env.conf.CheckLibWithHeader(lib, header, 'c++'):
+        if not env.conf.CheckLibWithHeader(lib + '-mt', header, 'c++'):
+            print 'Boost regex is required'
+            Exit(1)
+        else:
+            build_libs.append(lib + '-mt')
     else:
-        build_libs.append('boost_regex-mt')
-else:
-    build_libs.append('boost_regex')
+        build_libs.append(lib)
+
+getBoostLib('boost_regex', 'boost/regex.hpp')
 
 env = env.conf.Finish()
 env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp', 'outputters.cpp'],
