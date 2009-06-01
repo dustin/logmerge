@@ -23,8 +23,13 @@ namespace logmerge {
 }
 
 static void logmerge::initLogfile(log_queue& queue, const char *filename) {
-    LogFile *lf=new LogFile(filename);
-    queue.push(lf);
+    try {
+        LogFile *lf=new LogFile(filename);
+        queue.push(lf);
+    } catch(LogfileError e) {
+        std::cerr << "*** Error initializing ``" << filename << "'':  " << e.what()
+                  << std::endl;
+    }
 }
 
 /* Initialize all of the logfiles */

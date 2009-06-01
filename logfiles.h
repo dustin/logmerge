@@ -45,6 +45,20 @@ class S3LineOutputter : public LineOutputter {
     void writeLine(std::string s);
 };
 
+class LogfileError : public std::exception {
+public:
+    LogfileError(const char *s) {
+        msg = s;
+    };
+
+    virtual const char *what() const throw() {
+        return msg;
+    }
+
+private:
+    const char *msg;
+};
+
 /* The logfile itself */
 class LogFile {
  public:

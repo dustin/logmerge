@@ -44,13 +44,13 @@ int LogFile::openLogfile()
                              std::ios_base::in | std::ios_base::binary);
     assert(file != NULL);
     if (file->fail()) {
-        throw std::runtime_error("Error opening logfile.");
+        throw LogfileError("Error opening logfile.");
     }
     assert(file->is_open());
 
     bool isgzip = file->get() == 037 && file->get() == 0213;
     if (file->fail()) {
-        throw std::runtime_error("Error trying to read magic");
+        throw LogfileError("Error trying to read magic");
     }
     file->seekg(0, std::ios_base::beg);
 
@@ -263,7 +263,9 @@ LogFile::~LogFile()
         closeLogfile();
     }
 
-    delete outputter;
+    if (outputter != NULL) {
+        delete outputter;
+    }
 
     /* Free the parts */
     if(filename!=NULL) {
