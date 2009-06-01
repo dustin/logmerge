@@ -89,7 +89,7 @@ class LogFile {
     std::string *line;
 
     /* The filename of this log entry */
-    char *filename;
+    std::string filename;
     /* The timestamp of the current record */
     time_t timestamp;
 

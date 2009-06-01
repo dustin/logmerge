@@ -35,12 +35,11 @@ namespace io = boost::iostreams;
  */
 int LogFile::openLogfile()
 {
-    assert(filename);
     assert(instream == NULL);
 
-    fprintf(stderr, "*** Opening ``%s''\n", filename);
+    std::cerr << "*** Opening ``" << filename << "''" << std::endl;
 
-    file = new std::ifstream(filename,
+    file = new std::ifstream(filename.c_str(),
                              std::ios_base::in | std::ios_base::binary);
     assert(file != NULL);
     if (file->fail()) {
@@ -237,9 +236,8 @@ void LogFile::writeLine()
 void LogFile::closeLogfile()
 {
     assert(instream != NULL);
-    assert(filename != NULL);
 
-    fprintf(stderr, "*** Closing %s\n", filename);
+    std::cerr << "*** Closing ``" << filename << "''" << std::endl;
 
     delete instream;
     instream = NULL;
@@ -257,7 +255,7 @@ void LogFile::closeLogfile()
  */
 LogFile::~LogFile()
 {
-    fprintf(stderr, "** Destroying %s\n", filename);
+    std::cerr << "** Destroying ``" << filename << "''" << std::endl;
 
     if(instream != NULL) {
         closeLogfile();
@@ -265,11 +263,6 @@ LogFile::~LogFile()
 
     if (outputter != NULL) {
         delete outputter;
-    }
-
-    /* Free the parts */
-    if(filename!=NULL) {
-        free(filename);
     }
 }
 
@@ -279,8 +272,7 @@ LogFile::~LogFile()
 LogFile::LogFile(const char *inFilename)
 {
     assert(inFilename);
-    filename=(char *)strdup(inFilename);
-    assert(filename);
+    filename=inFilename;
 
     instream = NULL;
     line = NULL;
