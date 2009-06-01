@@ -1,7 +1,7 @@
-opts=Options()
+opts=Variables()
 
-opts.Add(BoolOption('PROFILE', 'Compile with profiling.', 0))
-opts.Add(BoolOption('USE_ASSERT', 'Compile with assertions', 0))
+opts.Add(BoolVariable('PROFILE', 'Compile with profiling.', 0))
+opts.Add(BoolVariable('USE_ASSERT', 'Compile with assertions', 0))
 
 env = Environment(options = opts)
 Help(opts.GenerateHelpText(env))
