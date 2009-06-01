@@ -226,14 +226,17 @@ void LogFile::writeLine()
 
 void LogFile::closeLogfile()
 {
-    assert(instream != NULL);
-
     std::cerr << "*** Closing ``" << filename << "''" << std::endl;
 
-    delete instream;
-    instream = NULL;
-    delete file;
-    file = NULL;
+    if (instream != NULL) {
+        delete instream;
+        instream = NULL;
+    }
+
+    if (file != NULL) {
+        delete file;
+        file = NULL;
+    }
 
     if (line) {
         delete line;
@@ -270,15 +273,25 @@ LogFile::LogFile(const char *inFilename)
     outputter = NULL;
     file = NULL;
 
-    /* Try to open the logfile */
-    openLogfile();
-    /* If it's opened succesfully, read the next (first) line */
-    if(!nextLine()) {
-        /* If nextLine didn't return a record, this entry is invalid. */
-        throw LogfileError("Error trying to read an initial record.");
-    } else {
-        outputter = getLogOutputter(line);
-        closeLogfile();
+    try {
+        /* Try to open the logfile */
+        openLogfile();
+        /* If it's opened succesfully, read the next (first) line */
+        if(!nextLine()) {
+            /* If nextLine didn't return a record, this entry is invalid. */
+            throw LogfileError("Error trying to read an initial record.");
+        } else {
+            outputter = getLogOutputter(line);
+            closeLogfile();
+        }
+    } catch(LogfileError e) {
+        if (file != NULL) {
+            closeLogfile();
+        }
+        if (outputter != NULL) {
+            delete outputter;
+        }
+        throw;
     }
 }
 
