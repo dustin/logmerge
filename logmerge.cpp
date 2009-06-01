@@ -20,6 +20,28 @@ namespace logmerge {
     static void initLogfiles(log_queue&, int, char **);
     static void outputLogfiles(log_queue&);
     static void initLogfile(log_queue&, const char*);
+    static void skipRecord(log_queue &queue);
+}
+
+
+/**
+ * Get rid of the first entry in the log list, and reinsert it somewhere
+ * that makes sense, or throw it away if it's no longer necessary.
+ */
+static void logmerge::skipRecord(log_queue &queue)
+{
+    assert(!queue.empty());
+
+    LogFile *oldEntry=queue.top();
+    assert(oldEntry);
+    queue.pop();
+
+    /* If stuff comes back, reinsert the old entry */
+    if(oldEntry->nextLine()) {
+        queue.push(oldEntry);
+    } else {
+        delete oldEntry;
+    }
 }
 
 static void logmerge::initLogfile(log_queue& queue, const char *filename) {

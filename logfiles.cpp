@@ -282,23 +282,3 @@ LogFile::LogFile(const char *inFilename)
         throw;
     }
 }
-
-/**
- * Get rid of the first entry in the log list, and reinsert it somewhere
- * that makes sense, or throw it away if it's no longer necessary.
- */
-void skipRecord(log_queue& queue)
-{
-    assert(!queue.empty());
-
-    LogFile *oldEntry=queue.top();
-    assert(oldEntry);
-    queue.pop();
-
-    /* If stuff comes back, reinsert the old entry */
-    if(oldEntry->nextLine()) {
-        queue.push(oldEntry);
-    } else {
-        delete oldEntry;
-    }
-}

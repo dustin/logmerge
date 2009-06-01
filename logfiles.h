@@ -94,9 +94,6 @@ class LogFile {
 
 typedef std::priority_queue<LogFile*, std::vector<LogFile*> > log_queue;
 
-/* Skip to the next record in the list */
-void skipRecord(log_queue&);
-
 /* Parse a month.  This is generally static, but exposed when assertions are
    enabled. */
 #ifdef USE_ASSERT
