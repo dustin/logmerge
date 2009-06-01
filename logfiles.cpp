@@ -41,7 +41,6 @@ void LogFile::openLogfile()
 
     file = new std::ifstream(filename.c_str(),
                              std::ios_base::in | std::ios_base::binary);
-    assert(file != NULL);
     if (file->fail()) {
         throw LogfileError("Error opening logfile.");
     }
@@ -54,7 +53,6 @@ void LogFile::openLogfile()
     file->seekg(0, std::ios_base::beg);
 
     instream = new io::filtering_istream();
-    assert(instream != NULL);
     if (isgzip) {
         instream->push(io::gzip_decompressor());
     }
