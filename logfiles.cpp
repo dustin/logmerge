@@ -111,7 +111,10 @@ static void outputLineS3(struct logfile *lf) {
 static void outputLineDirect(struct logfile *lf) {
     assert(lf != NULL);
     assert(lf->line != NULL);
-    if(fwrite(lf->line, lf->lineLength, 1, stdout) < lf->lineLength) {
+    size_t bytes_written = fwrite(lf->line, 1, lf->lineLength, stdout);
+    if(bytes_written < lf->lineLength) {
+        fprintf(stderr, "Short write: only wrote %d bytes out of %d\n",
+                (unsigned int)bytes_written, (unsigned int)lf->lineLength);
         perror("fwrite");
         exit(EX_IOERR);
     }
