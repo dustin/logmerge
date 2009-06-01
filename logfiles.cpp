@@ -275,7 +275,7 @@ LogFile::LogFile(const char *inFilename)
     /* If it's opened succesfully, read the next (first) line */
     if(!nextLine()) {
         /* If nextLine didn't return a record, this entry is invalid. */
-        throw std::runtime_error("Error trying to read a record.");
+        throw LogfileError("Error trying to read an initial record.");
     } else {
         outputter = getLogOutputter(line);
         closeLogfile();
