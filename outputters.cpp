@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 #include <stdio.h>
 #include <time.h>
@@ -35,10 +36,10 @@ enum logType identifyLog(const char *line) {
     return rv;
 }
 
-void S3LineOutputter::writeLine(const char *line, size_t length) {
+void S3LineOutputter::writeLine(std::string line) {
     boost::cmatch what;
 
-    assert(line);
+    assert(!line.empty());
 
     /*
     // Positions as defined in the regex
@@ -52,21 +53,15 @@ void S3LineOutputter::writeLine(const char *line, size_t length) {
     S3_UA       8
     */
 
-    if(boost::regex_search(line, what, amazon_s3_regex)) {
+    if(boost::regex_search(line.c_str(), what, amazon_s3_regex)) {
         std::ostream_iterator<char> out(std::cout);
         what.format(out, "$3 - - [$2] $4 $5 $6 $7 $8 $1\n");
     } else {
-        fprintf(stderr, "*** S3: Failed to match ``%s''\n", line);
+        std::cerr << "*** S3: Failed to match ``" << line << "''" << std::endl;
     }
 }
 
-void DirectLineOutputter::writeLine(const char *line, size_t length) {
-    assert(line != NULL);
-    size_t bytes_written = fwrite(line, 1, length, stdout);
-    if(bytes_written < length) {
-        fprintf(stderr, "Short write: only wrote %d bytes out of %d\n",
-                (unsigned int)bytes_written, (unsigned int)length);
-        perror("fwrite");
-        exit(EX_IOERR);
-    }
+void DirectLineOutputter::writeLine(std::string line) {
+    assert(!line.empty());
+    std::cout << line << std::endl;
 }

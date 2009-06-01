@@ -39,6 +39,7 @@ def getBoostLib(lib, header):
         build_libs.append(lib)
 
 getBoostLib('boost_regex', 'boost/regex.hpp')
+getBoostLib('boost_iostreams', 'boost/iostreams/stream.hpp')
 
 env = env.conf.Finish()
 env.Program('logmerge', ['logmerge.cpp', 'logfiles.cpp', 'outputters.cpp'],

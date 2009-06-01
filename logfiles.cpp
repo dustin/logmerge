@@ -2,6 +2,7 @@
  * Copyright (c) 2002-2007  Dustin Sallings <dustin@spy.net>
  */
 
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -19,81 +20,50 @@
 # define assert(a)
 #endif
 
-#include <zlib.h>
+#include <boost/iostreams/device/file.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 #include "logfiles.h"
 
 #define NOTREACHED 0
 
-bool LogFile::myGzgets()
-{
-    char *rv=line;
-    int s=LINE_BUFFER;
-    int bytesRead=0;
-
-    lineLength=0;
-
-    for(;;) {
-        if(gzBufCur > gzBufEnd || gzBufEnd == NULL) {
-            /* Fetch some more stuff */
-            bytesRead=gzread(input, gzBuf, GZBUFFER);
-            gzBufEnd=bytesRead + gzBuf - 1;
-            /* Make sure we got something */
-            if(bytesRead == 0) {
-                return(false);
-            }
-            gzBufCur=gzBuf;
-        }
-        /* Make sure we do not get too many characters */
-        if(--s > 0) {
-            *rv++ = *gzBufCur;
-            lineLength++;
-            if(*(gzBufCur++) == '\n') {
-                *rv=0x00;
-                return(true);
-            }
-        } else {
-            *rv=0x00;
-            return(true);
-        }
-    }
-
-    assert(NOTREACHED);
-    return(rv);
-}
+namespace io = boost::iostreams;
 
 /**
  * Open a logfile.
  */
 int LogFile::openLogfile()
 {
-    int rv=ERROR;
-
     assert(filename);
-    assert(! isOpen);
+    assert(instream == NULL);
 
     fprintf(stderr, "*** Opening ``%s''\n", filename);
 
-    input=gzopen(filename, "r");
-
-    if(input != NULL) {
-        isOpen=true;
-        rv=OK;
+    file = new std::ifstream(filename,
+                             std::ios_base::in | std::ios_base::binary);
+    assert(file != NULL);
+    if (file->fail()) {
+        throw std::runtime_error("Error opening logfile.");
     }
+    assert(file->is_open());
 
-    /* Allocate the line buffer */
-    line=(char*)calloc(1, LINE_BUFFER);
-    assert(line != NULL);
-    lineLength=0;
+    bool isgzip = file->get() == 037 && file->get() == 0213;
+    if (file->fail()) {
+        throw std::runtime_error("Error trying to read magic");
+    }
+    file->seekg(0, std::ios_base::beg);
 
-    /* Allocate the read buffer */
-    gzBuf=(char*)calloc(1, GZBUFFER);
-    assert(gzBuf != NULL);
+    instream = new io::filtering_istream();
+    assert(instream != NULL);
+    if (isgzip) {
+        instream->push(io::gzip_decompressor());
+    }
+    instream->push(*file);
 
-    gzBufCur=NULL;
-    gzBufEnd=NULL;
+    assert(!instream->fail());
 
-    return(rv);
+    return(OK);
 }
 
 /* A date and a string */
@@ -150,18 +120,19 @@ class BadTimestamp : public std::exception {
 
 time_t LogFile::parseTimestamp()
 {
-    char *p;
+    const char *p;
 
-    assert(line != NULL);
+    assert(line);
+    assert(!line->empty());
 
     timestamp=-1;
 
-    p=line;
+    p=line->c_str();
 
     try {
 
         /* The shortest line I can parse is about 32 characters. */
-        if(lineLength < 32) {
+        if(line->length() < 32) {
             /* This is a broken entry */
             fprintf(stderr, "Broken log entry (too short):  %s\n", p);
         } else if(index(p, '[') != NULL) {
@@ -170,8 +141,8 @@ time_t LogFile::parseTimestamp()
 
             p=index(p, '[');
             /* Input validation */
-            if(p == NULL || lineLength < 32) {
-                fprintf(stderr, "invalid log line:  %s\n", line);
+            if(p == NULL || line->length() < 32) {
+                std::cerr << "Invalid log line:  " << *line << std::endl;
                 throw BadTimestamp();
             }
 
@@ -191,9 +162,9 @@ time_t LogFile::parseTimestamp()
 
             /* Make sure it still looks like CLF */
             if(p[2] != ' ') {
-                fprintf(stderr,
-                        "log line is starting to not look like CLF: %s\n",
-                        line);
+                std::cerr << "log line is starting to not look like CLF: "
+                          << *line
+                          << std::endl;
                 throw BadTimestamp();
             }
 
@@ -213,7 +184,7 @@ time_t LogFile::parseTimestamp()
     }
 
     if(timestamp < 0) {
-        fprintf(stderr, "* Error parsing timestamp from %s", line);
+        std::cerr << "* Error parsing timestamp from " << *line << std::endl;
     }
 
     return(timestamp);
@@ -225,9 +196,9 @@ time_t LogFile::parseTimestamp()
  */
 bool LogFile::nextLine()
 {
-    bool rv=false;
+    bool rv=true;
 
-    if(!isOpen) {
+    if(instream == NULL) {
         int logfileOpened=openLogfile();
         /* This looks a little awkward, but it's the only way I can both
          * avoid the side effect of having assert perform the task and
@@ -237,66 +208,48 @@ bool LogFile::nextLine()
             assert(logfileOpened == OK);
         }
         /* Recurse to skip a line */
+        std::cerr << "Recursing..." << std::endl;
         rv=nextLine();
         assert(rv);
     }
 
-    if(myGzgets()) {
-        rv=true;
-        char *p=line;
-        /* Make sure the line is short enough */
-        assert(lineLength < LINE_BUFFER);
-        /* Make sure we read a line */
-        if(p[lineLength-1] != '\n') {
-            fprintf(stderr, "*** BROKEN LOG ENTRY IN %s (no newline)\n",
-                    filename);
-            rv=false;
-        } else if(parseTimestamp() == -1) {
-            /* If we can't parse the timestamp, give up */
-            rv=false;
-        }
+    if (line == NULL) {
+        line = new std::string();
     }
+
+    std::getline(*instream, *line);
+    rv = !(instream->fail() || line->empty() || parseTimestamp() == -1);
 
     return rv;
 }
 
 void LogFile::writeLine()
 {
-    if (! isOpen) {
+    if (instream == NULL) {
         openLogfile();
+        nextLine();
     }
 
-    outputter->writeLine(line, lineLength);
+    assert(line);
+    outputter->writeLine(*line);
 }
 
 void LogFile::closeLogfile()
 {
-    int gzerrno=0;
-
-    assert(input != NULL);
+    assert(instream != NULL);
     assert(filename != NULL);
 
     fprintf(stderr, "*** Closing %s\n", filename);
 
-    /* Free the line buffer */
-    if(line != NULL) {
-        free(line);
-        line=NULL;
-    }
+    delete instream;
+    instream = NULL;
+    delete file;
+    file = NULL;
 
-    gzerrno=gzclose(input);
-    if(gzerrno!=0) {
-        gzerror(input, &gzerrno);
+    if (line) {
+        delete line;
+        line = NULL;
     }
-    isOpen=false;
-
-    if(gzBuf != NULL) {
-        free(gzBuf);
-        gzBuf = NULL;
-    }
-
-    gzBufCur=NULL;
-    gzBufEnd=NULL;
 }
 
 /**
@@ -306,7 +259,7 @@ LogFile::~LogFile()
 {
     fprintf(stderr, "** Destroying %s\n", filename);
 
-    if(isOpen) {
+    if(instream != NULL) {
         closeLogfile();
     }
 
@@ -315,12 +268,6 @@ LogFile::~LogFile()
     /* Free the parts */
     if(filename!=NULL) {
         free(filename);
-    }
-    if(line != NULL) {
-        free(line);
-    }
-    if(gzBuf != NULL) {
-        free(gzBuf);
     }
 }
 
@@ -333,7 +280,10 @@ LogFile::LogFile(const char *inFilename)
     filename=(char *)strdup(inFilename);
     assert(filename);
 
-    isOpen = false;
+    instream = NULL;
+    line = NULL;
+    outputter = NULL;
+    file = NULL;
 
     /* Try to open the logfile */
     if(openLogfile() != OK) {
@@ -345,7 +295,7 @@ LogFile::LogFile(const char *inFilename)
             throw std::runtime_error("Error trying to read a record.");
         } else {
             /* Otherwise, it's valid and we'll proceed, but close it. */
-            switch(identifyLog(line)) {
+            switch(identifyLog(line->c_str())) {
             case COMMON:
                 fprintf(stderr, "**** %s is a common log file\n", filename);
                 outputter = new DirectLineOutputter();
