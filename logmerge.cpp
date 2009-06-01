@@ -55,7 +55,7 @@ static void logmerge::outputLogfiles(log_queue& queue)
         LogFile *lf=queue.top();
         assert(lf);
         if(! lf->isOpen) {
-            openLogfile(*lf);
+            lf->openLogfile();
         }
 
         lf->outputLine(*lf);

@@ -48,18 +48,28 @@ class LogFile {
         return timestamp > b.timestamp;
     }
 
-    /* The filename of this log entry */
-    char *filename;
+    bool nextLine();
+
     /* The current record */
     char *line;
     /* Look!  I know pascal! */
     size_t lineLength;
-    /* Function to output the current line */
-    void (*outputLine)(LogFile&);
-    /* The timestamp of the current record */
-    time_t timestamp;
     /* Indicate whether this logfile is open */
     bool isOpen;
+    int openLogfile();
+    /* Function to output the current line */
+    void (*outputLine)(LogFile&);
+
+ private:
+
+    void closeLogfile();
+    bool myGzgets();
+    time_t parseTimestamp();
+
+    /* The filename of this log entry */
+    char *filename;
+    /* The timestamp of the current record */
+    time_t timestamp;
     /* Buffering for speeding up gzipped file access */
     char *gzBufCur;
     char *gzBufEnd;
@@ -72,8 +82,6 @@ typedef std::priority_queue<LogFile*, std::vector<LogFile*> > log_queue;
 
 /* Skip to the next record in the list */
 void skipRecord(log_queue&);
-/* Open a logfile */
-int openLogfile(LogFile&);
 
 /* Parse a month.  This is generally static, but exposed when assertions are
    enabled. */

@@ -32,30 +32,30 @@
 
 boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
-static bool myGzgets(LogFile& lf)
+bool LogFile::myGzgets()
 {
-    char *rv=lf.line;
+    char *rv=line;
     int s=LINE_BUFFER;
     int bytesRead=0;
 
-    lf.lineLength=0;
+    lineLength=0;
 
     for(;;) {
-        if(lf.gzBufCur > lf.gzBufEnd || lf.gzBufEnd == NULL) {
+        if(gzBufCur > gzBufEnd || gzBufEnd == NULL) {
             /* Fetch some more stuff */
-            bytesRead=gzread(lf.input, lf.gzBuf, GZBUFFER);
-            lf.gzBufEnd=bytesRead + lf.gzBuf - 1;
+            bytesRead=gzread(input, gzBuf, GZBUFFER);
+            gzBufEnd=bytesRead + gzBuf - 1;
             /* Make sure we got something */
             if(bytesRead == 0) {
                 return(false);
             }
-            lf.gzBufCur=lf.gzBuf;
+            gzBufCur=gzBuf;
         }
         /* Make sure we do not get too many characters */
         if(--s > 0) {
-            *rv++ = *lf.gzBufCur;
-            lf.lineLength++;
-            if(*(lf.gzBufCur++) == '\n') {
+            *rv++ = *gzBufCur;
+            lineLength++;
+            if(*(gzBufCur++) == '\n') {
                 *rv=0x00;
                 return(true);
             }
@@ -121,33 +121,33 @@ static void outputLineDirect(LogFile& lf) {
 /**
  * Open a logfile.
  */
-int openLogfile(LogFile& lf)
+int LogFile::openLogfile()
 {
     int rv=ERROR;
 
-    assert(lf.filename);
-    assert(! lf.isOpen);
+    assert(filename);
+    assert(! isOpen);
 
-    fprintf(stderr, "*** Opening ``%s''\n", lf.filename);
+    fprintf(stderr, "*** Opening ``%s''\n", filename);
 
-    lf.input=gzopen(lf.filename, "r");
+    input=gzopen(filename, "r");
 
-    if(lf.input != NULL) {
-        lf.isOpen=true;
+    if(input != NULL) {
+        isOpen=true;
         rv=OK;
     }
 
     /* Allocate the line buffer */
-    lf.line=(char*)calloc(1, LINE_BUFFER);
-    assert(lf.line != NULL);
-    lf.lineLength=0;
+    line=(char*)calloc(1, LINE_BUFFER);
+    assert(line != NULL);
+    lineLength=0;
 
     /* Allocate the read buffer */
-    lf.gzBuf=(char*)calloc(1, GZBUFFER);
-    assert(lf.gzBuf != NULL);
+    gzBuf=(char*)calloc(1, GZBUFFER);
+    assert(gzBuf != NULL);
 
-    lf.gzBufCur=NULL;
-    lf.gzBufEnd=NULL;
+    gzBufCur=NULL;
+    gzBufEnd=NULL;
 
     return(rv);
 }
@@ -204,20 +204,20 @@ class BadTimestamp : public std::exception {
     }
 };
 
-static time_t parseTimestamp(LogFile& lf)
+time_t LogFile::parseTimestamp()
 {
     char *p;
 
-    assert(lf.line != NULL);
+    assert(line != NULL);
 
-    lf.timestamp=-1;
+    timestamp=-1;
 
-    p=lf.line;
+    p=line;
 
     try {
 
         /* The shortest line I can parse is about 32 characters. */
-        if(lf.lineLength < 32) {
+        if(lineLength < 32) {
             /* This is a broken entry */
             fprintf(stderr, "Broken log entry (too short):  %s\n", p);
         } else if(index(p, '[') != NULL) {
@@ -226,8 +226,8 @@ static time_t parseTimestamp(LogFile& lf)
 
             p=index(p, '[');
             /* Input validation */
-            if(p == NULL || lf.lineLength < 32) {
-                fprintf(stderr, "invalid log line:  %s\n", lf.line);
+            if(p == NULL || lineLength < 32) {
+                fprintf(stderr, "invalid log line:  %s\n", line);
                 throw BadTimestamp();
             }
 
@@ -249,7 +249,7 @@ static time_t parseTimestamp(LogFile& lf)
             if(p[2] != ' ') {
                 fprintf(stderr,
                         "log line is starting to not look like CLF: %s\n",
-                        lf.line);
+                        line);
                 throw BadTimestamp();
             }
 
@@ -258,7 +258,7 @@ static time_t parseTimestamp(LogFile& lf)
             /* Let mktime guess the timezone */
             tm.tm_isdst=-1;
 
-            lf.timestamp=mktime(&tm);
+            timestamp=mktime(&tm);
 
         } else {
             fprintf(stderr, "Unknown log format:  %s\n", p);
@@ -268,23 +268,23 @@ static time_t parseTimestamp(LogFile& lf)
         // Damn.
     }
 
-    if(lf.timestamp < 0) {
-        fprintf(stderr, "* Error parsing timestamp from %s", lf.line);
+    if(timestamp < 0) {
+        fprintf(stderr, "* Error parsing timestamp from %s", line);
     }
 
-    return(lf.timestamp);
+    return(timestamp);
 }
 
 /**
  * Get the next line from a log file.
  * Return whether the seek actually occurred.
  */
-static bool nextLine(LogFile& lf)
+bool LogFile::nextLine()
 {
     bool rv=false;
 
-    if(!lf.isOpen) {
-        int logfileOpened=openLogfile(lf);
+    if(!isOpen) {
+        int logfileOpened=openLogfile();
         /* This looks a little awkward, but it's the only way I can both
          * avoid the side effect of having assert perform the task and
          * not leave the variable unreferenced when assertions are off.
@@ -293,21 +293,21 @@ static bool nextLine(LogFile& lf)
             assert(logfileOpened == OK);
         }
         /* Recurse to skip a line */
-        rv=nextLine(lf);
+        rv=nextLine();
         assert(rv);
     }
 
-    if(myGzgets(lf)) {
+    if(myGzgets()) {
         rv=true;
-        char *p=lf.line;
+        char *p=line;
         /* Make sure the line is short enough */
-        assert(lf.lineLength < LINE_BUFFER);
+        assert(lineLength < LINE_BUFFER);
         /* Make sure we read a line */
-        if(p[lf.lineLength-1] != '\n') {
+        if(p[lineLength-1] != '\n') {
             fprintf(stderr, "*** BROKEN LOG ENTRY IN %s (no newline)\n",
-                    lf.filename);
+                    filename);
             rv=false;
-        } else if(parseTimestamp(lf) == -1) {
+        } else if(parseTimestamp() == -1) {
             /* If we can't parse the timestamp, give up */
             rv=false;
         }
@@ -316,34 +316,34 @@ static bool nextLine(LogFile& lf)
     return rv;
 }
 
-static void closeLogfile(LogFile& lf)
+void LogFile::closeLogfile()
 {
     int gzerrno=0;
 
-    assert(lf.input != NULL);
-    assert(lf.filename != NULL);
+    assert(input != NULL);
+    assert(filename != NULL);
 
-    fprintf(stderr, "*** Closing %s\n", lf.filename);
+    fprintf(stderr, "*** Closing %s\n", filename);
 
     /* Free the line buffer */
-    if(lf.line != NULL) {
-        free(lf.line);
-        lf.line=NULL;
+    if(line != NULL) {
+        free(line);
+        line=NULL;
     }
 
-    gzerrno=gzclose(lf.input);
+    gzerrno=gzclose(input);
     if(gzerrno!=0) {
-        gzerror(lf.input, &gzerrno);
+        gzerror(input, &gzerrno);
     }
-    lf.isOpen=false;
+    isOpen=false;
 
-    if(lf.gzBuf != NULL) {
-        free(lf.gzBuf);
-        lf.gzBuf = NULL;
+    if(gzBuf != NULL) {
+        free(gzBuf);
+        gzBuf = NULL;
     }
 
-    lf.gzBufCur=NULL;
-    lf.gzBufEnd=NULL;
+    gzBufCur=NULL;
+    gzBufEnd=NULL;
 }
 
 /**
@@ -354,7 +354,7 @@ LogFile::~LogFile()
     fprintf(stderr, "** Destroying %s\n", filename);
 
     if(isOpen) {
-        closeLogfile(*this);
+        closeLogfile();
     }
 
     /* Free the parts */
@@ -381,11 +381,11 @@ LogFile::LogFile(const char *inFilename)
     isOpen = false;
 
     /* Try to open the logfile */
-    if(openLogfile(*this) != OK) {
+    if(openLogfile() != OK) {
         throw std::runtime_error("Error opening logfile.");
     } else {
         /* If it's opened succesfully, read the next (first) line */
-        if(!nextLine(*this)) {
+        if(!nextLine()) {
             /* If nextLine didn't return a record, this entry is invalid. */
             throw std::runtime_error("Error trying to read a record.");
         } else {
@@ -409,7 +409,7 @@ LogFile::LogFile(const char *inFilename)
             if(outputLine == NULL) {
                 throw std::runtime_error("Found no output line.");
             } else {
-                closeLogfile(*this);
+                closeLogfile();
             }
         }
     }
@@ -428,7 +428,7 @@ void skipRecord(log_queue& queue)
     queue.pop();
 
     /* If stuff comes back, reinsert the old entry */
-    if(nextLine(*oldEntry)) {
+    if(oldEntry->nextLine()) {
         queue.push(oldEntry);
     } else {
         delete oldEntry;
