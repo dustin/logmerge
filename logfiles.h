@@ -44,6 +44,10 @@ class LogFile {
 
     ~LogFile();
 
+    bool operator< (const LogFile &b) const {
+        return timestamp > b.timestamp;
+    }
+
     /* The filename of this log entry */
     char *filename;
     /* The current record */
@@ -64,14 +68,7 @@ class LogFile {
     gzFile input;
 };
 
-class TimeCmp {
- public:
-    bool operator() (const LogFile *a, const LogFile *b) const {
-        return a->timestamp > b->timestamp;
-    }
-};
-
-typedef std::priority_queue<LogFile*, std::vector<LogFile*>, TimeCmp> log_queue;
+typedef std::priority_queue<LogFile*, std::vector<LogFile*> > log_queue;
 
 /* Skip to the next record in the list */
 void skipRecord(log_queue&);
