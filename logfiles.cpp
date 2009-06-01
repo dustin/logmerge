@@ -271,7 +271,7 @@ LogFile::LogFile(const char *inFilename)
             /* If nextLine didn't return a record, this entry is invalid. */
             throw LogfileError("Error trying to read an initial record.");
         } else {
-            outputter = getLogOutputter(line);
+            outputter = LineOutputter::forLine(*line);
             closeLogfile();
         }
     } catch(LogfileError e) {

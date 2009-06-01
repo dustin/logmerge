@@ -34,6 +34,8 @@ class LineOutputter {
 public:
     virtual void writeLine(std::string &s) = 0;
     virtual ~LineOutputter() {};
+
+    static LineOutputter *forLine(const std::string &s);
 };
 
 class DirectLineOutputter : public LineOutputter {
@@ -94,8 +96,6 @@ typedef std::priority_queue<LogFile*, std::vector<LogFile*> > log_queue;
 
 /* Skip to the next record in the list */
 void skipRecord(log_queue&);
-
-LineOutputter *getLogOutputter(const std::string *line);
 
 /* Parse a month.  This is generally static, but exposed when assertions are
    enabled. */

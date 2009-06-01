@@ -54,10 +54,8 @@ void DirectLineOutputter::writeLine(std::string &line) {
 }
 
 /* Returns a value from logTypes */
-LineOutputter *getLogOutputter(const std::string *line) {
-    assert(line != NULL);
-
-    return (boost::regex_search(line->begin(), line->end(),
+LineOutputter *LineOutputter::forLine(const std::string &line) {
+    return (boost::regex_search(line.begin(), line.end(),
                                 amazon_s3_regex)
             ? (LineOutputter*)new S3LineOutputter()
             : (LineOutputter*)new DirectLineOutputter());
