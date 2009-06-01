@@ -54,11 +54,7 @@ static void logmerge::outputLogfiles(log_queue& queue)
 
         LogFile *lf=queue.top();
         assert(lf);
-        if(! lf->isOpen) {
-            lf->openLogfile();
-        }
-
-        lf->outputter->writeLine(lf->line, lf->lineLength);
+        lf->writeLine();
         skipRecord(queue);
     }
 

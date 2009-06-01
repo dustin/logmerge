@@ -65,6 +65,16 @@ class LogFile {
     }
 
     bool nextLine();
+    void writeLine();
+
+ private:
+
+    void closeLogfile();
+    bool myGzgets();
+    time_t parseTimestamp();
+    int openLogfile();
+
+    LineOutputter *outputter;
 
     /* The current record */
     char *line;
@@ -72,14 +82,6 @@ class LogFile {
     size_t lineLength;
     /* Indicate whether this logfile is open */
     bool isOpen;
-    int openLogfile();
-    LineOutputter *outputter;
-
- private:
-
-    void closeLogfile();
-    bool myGzgets();
-    time_t parseTimestamp();
 
     /* The filename of this log entry */
     char *filename;

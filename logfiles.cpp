@@ -316,6 +316,15 @@ bool LogFile::nextLine()
     return rv;
 }
 
+void LogFile::writeLine()
+{
+    if (! isOpen) {
+        openLogfile();
+    }
+
+    outputter->writeLine(line, lineLength);
+}
+
 void LogFile::closeLogfile()
 {
     int gzerrno=0;
