@@ -6,6 +6,7 @@
 #define LOGFILES_H 1
 
 #include <iostream>
+#include <stdexcept>
 #include <queue>
 #include <vector>
 
@@ -55,7 +56,7 @@ class LogFile {
     LogFile(const char *);
 
     LogFile(const LogFile& lf) {
-        throw "Copying a logfile...";
+        throw std::runtime_error("Copying a logfile...");
     }
 
     ~LogFile();
