@@ -294,25 +294,7 @@ LogFile::LogFile(const char *inFilename)
             /* If nextLine didn't return a record, this entry is invalid. */
             throw std::runtime_error("Error trying to read a record.");
         } else {
-            /* Otherwise, it's valid and we'll proceed, but close it. */
-            switch(identifyLog(line->c_str())) {
-            case COMMON:
-                fprintf(stderr, "**** %s is a common log file\n", filename);
-                outputter = new DirectLineOutputter();
-                break;
-            case AMAZON_S3:
-                fprintf(stderr, "**** %s is an s3 log file\n", filename);
-                outputter = new S3LineOutputter();
-                break;
-            case UNKNOWN:
-                fprintf(stderr, "! Can't identify type of %s\n", filename);
-                throw std::runtime_error("Found no output line.");
-                break;
-            default:
-                throw std::runtime_error("Found no output line.");
-                assert(false);
-            }
-
+            outputter = getLogOutputter(line);
             closeLogfile();
         }
     }

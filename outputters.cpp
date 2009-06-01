@@ -23,19 +23,6 @@
 
 boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
-/* Returns a value from logTypes */
-enum logType identifyLog(const char *line) {
-    enum logType rv=UNKNOWN;
-    assert(line != NULL);
-
-    if(boost::regex_search(line, amazon_s3_regex)) {
-        rv=AMAZON_S3;
-    } else {
-        rv=COMMON;
-    }
-    return rv;
-}
-
 void S3LineOutputter::writeLine(std::string line) {
     boost::cmatch what;
 
@@ -64,4 +51,14 @@ void S3LineOutputter::writeLine(std::string line) {
 void DirectLineOutputter::writeLine(std::string line) {
     assert(!line.empty());
     std::cout << line << std::endl;
+}
+
+/* Returns a value from logTypes */
+LineOutputter *getLogOutputter(const std::string *line) {
+    assert(line != NULL);
+
+    return (boost::regex_search(line->begin(), line->end(),
+                                amazon_s3_regex)
+            ? (LineOutputter*)new S3LineOutputter()
+            : (LineOutputter*)new DirectLineOutputter());
 }

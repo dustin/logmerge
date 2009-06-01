@@ -29,10 +29,6 @@
 /* The size of a line buffer */
 #define LINE_BUFFER 16384
 
-enum logType {
-    COMMON, AMAZON_S3, UNKNOWN
-};
-
 class LineOutputter {
 public:
     virtual void writeLine(std::string s) = 0;
@@ -93,7 +89,7 @@ typedef std::priority_queue<LogFile*, std::vector<LogFile*> > log_queue;
 /* Skip to the next record in the list */
 void skipRecord(log_queue&);
 
-enum logType identifyLog(const char *line);
+LineOutputter *getLogOutputter(const std::string *line);
 
 /* Parse a month.  This is generally static, but exposed when assertions are
    enabled. */
