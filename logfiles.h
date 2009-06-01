@@ -82,7 +82,7 @@ class LogFile {
 
     void closeLogfile();
     time_t parseTimestamp();
-    int openLogfile();
+    void openLogfile();
 
     LineOutputter *outputter;
 

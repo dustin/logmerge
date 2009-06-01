@@ -33,7 +33,7 @@ namespace io = boost::iostreams;
 /**
  * Open a logfile.
  */
-int LogFile::openLogfile()
+void LogFile::openLogfile()
 {
     assert(instream == NULL);
 
@@ -61,8 +61,6 @@ int LogFile::openLogfile()
     instream->push(*file);
 
     assert(!instream->fail());
-
-    return(OK);
 }
 
 /* A date and a string */
@@ -198,16 +196,9 @@ bool LogFile::nextLine()
     bool rv=true;
 
     if(instream == NULL) {
-        int logfileOpened=openLogfile();
-        /* This looks a little awkward, but it's the only way I can both
-         * avoid the side effect of having assert perform the task and
-         * not leave the variable unreferenced when assertions are off.
-         */
-        if(logfileOpened != OK) {
-            assert(logfileOpened == OK);
-        }
+        openLogfile();
         /* Recurse to skip a line */
-        std::cerr << "Recursing..." << std::endl;
+        std::cerr << "*** Recursing..." << std::endl;
         rv=nextLine();
         assert(rv);
     }
@@ -280,17 +271,14 @@ LogFile::LogFile(const char *inFilename)
     file = NULL;
 
     /* Try to open the logfile */
-    if(openLogfile() != OK) {
-        throw std::runtime_error("Error opening logfile.");
+    openLogfile();
+    /* If it's opened succesfully, read the next (first) line */
+    if(!nextLine()) {
+        /* If nextLine didn't return a record, this entry is invalid. */
+        throw std::runtime_error("Error trying to read a record.");
     } else {
-        /* If it's opened succesfully, read the next (first) line */
-        if(!nextLine()) {
-            /* If nextLine didn't return a record, this entry is invalid. */
-            throw std::runtime_error("Error trying to read a record.");
-        } else {
-            outputter = getLogOutputter(line);
-            closeLogfile();
-        }
+        outputter = getLogOutputter(line);
+        closeLogfile();
     }
 }
 
