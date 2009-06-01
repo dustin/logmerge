@@ -31,18 +31,18 @@
 
 class LineOutputter {
 public:
-    virtual void writeLine(std::string s) = 0;
+    virtual void writeLine(std::string &s) = 0;
     virtual ~LineOutputter() {};
 };
 
 class DirectLineOutputter : public LineOutputter {
  public:
-    void writeLine(std::string s);
+    void writeLine(std::string &s);
 };
 
 class S3LineOutputter : public LineOutputter {
  public:
-    void writeLine(std::string s);
+    void writeLine(std::string &s);
 };
 
 class LogfileError : public std::exception {
