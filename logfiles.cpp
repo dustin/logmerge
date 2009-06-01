@@ -226,20 +226,14 @@ void LogFile::closeLogfile()
 {
     std::cerr << "*** Closing ``" << filename << "''" << std::endl;
 
-    if (instream != NULL) {
-        delete instream;
-        instream = NULL;
-    }
+    delete instream;
+    instream = NULL;
 
-    if (file != NULL) {
-        delete file;
-        file = NULL;
-    }
+    delete file;
+    file = NULL;
 
-    if (line) {
-        delete line;
-        line = NULL;
-    }
+    delete line;
+    line = NULL;
 }
 
 /**
@@ -253,9 +247,7 @@ LogFile::~LogFile()
         closeLogfile();
     }
 
-    if (outputter != NULL) {
-        delete outputter;
-    }
+    delete outputter;
 }
 
 /**
@@ -286,9 +278,7 @@ LogFile::LogFile(const char *inFilename)
         if (file != NULL) {
             closeLogfile();
         }
-        if (outputter != NULL) {
-            delete outputter;
-        }
+        delete outputter;
         throw;
     }
 }
