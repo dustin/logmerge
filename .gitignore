@@ -3,3 +3,5 @@ logmerge
 .sconf_temp/
 .sconsign.dblite
 config.log
+*~
+#~

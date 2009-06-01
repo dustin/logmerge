@@ -31,7 +31,7 @@ def getBoostLib(lib, header):
 
     if not env.conf.CheckLibWithHeader(lib, header, 'c++'):
         if not env.conf.CheckLibWithHeader(lib + '-mt', header, 'c++'):
-            print 'Boost regex is required'
+            print lib + ' is required'
             Exit(1)
         else:
             build_libs.append(lib + '-mt')
