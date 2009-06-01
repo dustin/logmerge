@@ -1,3 +1,4 @@
+/* -*- mode: c++ -*- */
 /*
  * Copyright (c) 2002-2007  Dustin Sallings
  */
