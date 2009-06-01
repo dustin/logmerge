@@ -58,7 +58,7 @@ static void logmerge::outputLogfiles(log_queue& queue)
             lf->openLogfile();
         }
 
-        lf->outputLine(*lf);
+        lf->outputter->writeLine(lf->line, lf->lineLength);
         skipRecord(queue);
     }
 

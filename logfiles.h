@@ -32,6 +32,22 @@ enum logType {
     COMMON, AMAZON_S3, UNKNOWN
 };
 
+class LineOutputter {
+public:
+    virtual void writeLine(const char *line, size_t length) = 0;
+    virtual ~LineOutputter() {};
+};
+
+class DirectLineOutputter : public LineOutputter {
+ public:
+    void writeLine(const char *line, size_t length);
+};
+
+class S3LineOutputter : public LineOutputter {
+ public:
+    void writeLine(const char *line, size_t length);
+};
+
 /* The logfile itself */
 class LogFile {
  public:
@@ -57,8 +73,7 @@ class LogFile {
     /* Indicate whether this logfile is open */
     bool isOpen;
     int openLogfile();
-    /* Function to output the current line */
-    void (*outputLine)(LogFile&);
+    LineOutputter *outputter;
 
  private:
 

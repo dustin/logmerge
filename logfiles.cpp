@@ -82,10 +82,10 @@ static enum logType identifyLog(const char *line) {
     return rv;
 }
 
-static void outputLineS3(LogFile& lf) {
+void S3LineOutputter::writeLine(const char *line, size_t length) {
     boost::cmatch what;
 
-    assert(lf.line);
+    assert(line);
 
     /*
     // Positions as defined in the regex
@@ -99,20 +99,20 @@ static void outputLineS3(LogFile& lf) {
     S3_UA       8
     */
 
-    if(boost::regex_search(lf.line, what, amazon_s3_regex)) {
+    if(boost::regex_search(line, what, amazon_s3_regex)) {
         std::ostream_iterator<char> out(std::cout);
         what.format(out, "$3 - - [$2] $4 $5 $6 $7 $8 $1\n");
     } else {
-        fprintf(stderr, "*** S3: Failed to match ``%s''\n", lf.line);
+        fprintf(stderr, "*** S3: Failed to match ``%s''\n", line);
     }
 }
 
-static void outputLineDirect(LogFile& lf) {
-    assert(lf.line != NULL);
-    size_t bytes_written = fwrite(lf.line, 1, lf.lineLength, stdout);
-    if(bytes_written < lf.lineLength) {
+void DirectLineOutputter::writeLine(const char *line, size_t length) {
+    assert(line != NULL);
+    size_t bytes_written = fwrite(line, 1, length, stdout);
+    if(bytes_written < length) {
         fprintf(stderr, "Short write: only wrote %d bytes out of %d\n",
-                (unsigned int)bytes_written, (unsigned int)lf.lineLength);
+                (unsigned int)bytes_written, (unsigned int)length);
         perror("fwrite");
         exit(EX_IOERR);
     }
@@ -357,6 +357,8 @@ LogFile::~LogFile()
         closeLogfile();
     }
 
+    delete outputter;
+
     /* Free the parts */
     if(filename!=NULL) {
         free(filename);
@@ -393,24 +395,22 @@ LogFile::LogFile(const char *inFilename)
             switch(identifyLog(line)) {
             case COMMON:
                 fprintf(stderr, "**** %s is a common log file\n", filename);
-                outputLine=outputLineDirect;
+                outputter = new DirectLineOutputter();
                 break;
             case AMAZON_S3:
                 fprintf(stderr, "**** %s is an s3 log file\n", filename);
-                outputLine=outputLineS3;
+                outputter = new S3LineOutputter();
                 break;
             case UNKNOWN:
                 fprintf(stderr, "! Can't identify type of %s\n", filename);
+                throw std::runtime_error("Found no output line.");
                 break;
             default:
+                throw std::runtime_error("Found no output line.");
                 assert(false);
             }
 
-            if(outputLine == NULL) {
-                throw std::runtime_error("Found no output line.");
-            } else {
-                closeLogfile();
-            }
+            closeLogfile();
         }
     }
 }
