@@ -24,12 +24,6 @@
 #define TESTED_STATIC static
 #endif
 
-#define OK 1
-#define ERROR -1
-
-/* The size of a line buffer */
-#define LINE_BUFFER 16384
-
 class LineOutputter {
 public:
     virtual void writeLine(std::string &s) = 0;

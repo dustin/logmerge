@@ -26,8 +26,6 @@
 
 #include "logfiles.h"
 
-#define NOTREACHED 0
-
 namespace io = boost::iostreams;
 
 /**
