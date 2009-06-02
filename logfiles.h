@@ -74,7 +74,7 @@ class LogFile {
 
     LineOutputter *outputter;
 
-    std::string *line;
+    std::string line;
 
     /* The filename of this log entry */
     std::string filename;

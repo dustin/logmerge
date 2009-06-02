@@ -115,17 +115,16 @@ time_t LogFile::parseTimestamp()
 {
     const char *p;
 
-    assert(line);
-    assert(!line->empty());
+    assert(!line.empty());
 
     timestamp=-1;
 
-    p=line->c_str();
+    p=line.c_str();
 
     try {
 
         /* The shortest line I can parse is about 32 characters. */
-        if(line->length() < 32) {
+        if(line.length() < 32) {
             /* This is a broken entry */
             fprintf(stderr, "Broken log entry (too short):  %s\n", p);
         } else if(index(p, '[') != NULL) {
@@ -134,8 +133,8 @@ time_t LogFile::parseTimestamp()
 
             p=index(p, '[');
             /* Input validation */
-            if(p == NULL || line->length() < 32) {
-                std::cerr << "Invalid log line:  " << *line << std::endl;
+            if(p == NULL || line.length() < 32) {
+                std::cerr << "Invalid log line:  " << line << std::endl;
                 throw BadTimestamp();
             }
 
@@ -156,7 +155,7 @@ time_t LogFile::parseTimestamp()
             /* Make sure it still looks like CLF */
             if(p[2] != ' ') {
                 std::cerr << "log line is starting to not look like CLF: "
-                          << *line
+                          << line
                           << std::endl;
                 throw BadTimestamp();
             }
@@ -177,7 +176,7 @@ time_t LogFile::parseTimestamp()
     }
 
     if(timestamp < 0) {
-        std::cerr << "* Error parsing timestamp from " << *line << std::endl;
+        std::cerr << "* Error parsing timestamp from " << line << std::endl;
     }
 
     return(timestamp);
@@ -199,12 +198,8 @@ bool LogFile::nextLine()
         assert(rv);
     }
 
-    if (line == NULL) {
-        line = new std::string();
-    }
-
-    std::getline(*instream, *line);
-    rv = !(instream->fail() || line->empty() || parseTimestamp() == -1);
+    std::getline(*instream, line);
+    rv = !(instream->fail() || line.empty() || parseTimestamp() == -1);
 
     return rv;
 }
@@ -216,8 +211,7 @@ void LogFile::writeLine()
         nextLine();
     }
 
-    assert(line);
-    outputter->writeLine(*line);
+    outputter->writeLine(line);
 }
 
 void LogFile::closeLogfile()
@@ -230,8 +224,10 @@ void LogFile::closeLogfile()
     delete file;
     file = NULL;
 
-    delete line;
-    line = NULL;
+    /* Not guaranteed to free storage, but in practice, it does */
+    line.clear();
+    line.resize(0);
+    line.reserve(0);
 }
 
 /**
@@ -257,7 +253,6 @@ LogFile::LogFile(const char *inFilename)
     filename=inFilename;
 
     instream = NULL;
-    line = NULL;
     outputter = NULL;
     file = NULL;
 
@@ -269,7 +264,7 @@ LogFile::LogFile(const char *inFilename)
             /* If nextLine didn't return a record, this entry is invalid. */
             throw LogfileError("Error trying to read an initial record.");
         } else {
-            outputter = LineOutputter::forLine(*line);
+            outputter = LineOutputter::forLine(line);
             closeLogfile();
         }
     } catch(LogfileError e) {
