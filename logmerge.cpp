@@ -90,7 +90,7 @@ static void logmerge::outputLogfiles(log_queue& queue)
 
 #ifdef USE_ASSERT
 static void testMonthParsing() {
-    char *months[] = {
+    const char *months[] = {
         "Jan/", "Feb/", "Mar/", "Apr/", "May/", "Jun/",
         "Jul/", "Aug/", "Sep/", "Oct/", "Nov/", "Dec/"
     };
