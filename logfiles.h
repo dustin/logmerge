@@ -59,12 +59,10 @@ class LogFile {
 
     ~LogFile();
 
-    bool operator< (const LogFile &b) const {
-        return timestamp > b.timestamp;
-    }
-
     bool nextLine();
     void writeLine();
+
+    const time_t getTimestamp() const { return timestamp; }
 
  private:
 
@@ -86,7 +84,13 @@ class LogFile {
     boost::iostreams::filtering_istream *instream;
 };
 
-typedef std::priority_queue<LogFile*, std::vector<LogFile*> > log_queue;
+struct log_compare {
+    bool operator() (const LogFile *lf1, const LogFile *lf2) {
+        return lf1->getTimestamp() > lf2->getTimestamp();
+    }
+};
+
+typedef std::priority_queue<LogFile*, std::vector<LogFile*>, log_compare> log_queue;
 
 /* Parse a month.  This is generally static, but exposed when assertions are
    enabled. */
