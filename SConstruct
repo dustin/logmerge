@@ -1,3 +1,4 @@
+# -*- mode: python -*-
 opts=Variables()
 
 opts.Add(BoolVariable('PROFILE', 'Compile with profiling.', 0))
@@ -7,8 +8,12 @@ env = Environment(options = opts)
 Help(opts.GenerateHelpText(env))
 
 # Extra places we need to look for includes
-env.Append(CPPPATH = ['/opt/local/include', '/usr/local/include'])
-env.Append(LIBPATH = ['/opt/local/lib', '/usr/local/lib'])
+env.Append(CPPPATH = ['/opt/local/include',
+                      '/usr/local/include',
+                      '/usr/local/homebrew/include'])
+env.Append(LIBPATH = ['/opt/local/lib',
+                      '/usr/local/lib',
+                      '/usr/local/homebrew/lib'])
 
 if ARGUMENTS.get('USE_ASSERT', 0):
     env.Append(CCFLAGS = '-DUSE_ASSERT=1')
