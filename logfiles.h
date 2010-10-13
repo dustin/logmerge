@@ -53,10 +53,6 @@ class LogFile {
 
     LogFile(const char *);
 
-    LogFile(const LogFile& lf) {
-        throw std::runtime_error("Copying a logfile...");
-    }
-
     ~LogFile();
 
     bool nextLine();
@@ -65,6 +61,8 @@ class LogFile {
     const time_t getTimestamp() const { return timestamp; }
 
  private:
+
+    LogFile(const LogFile& lf);
 
     void closeLogfile();
     time_t parseTimestamp();
