@@ -23,7 +23,7 @@
 
 boost::regex amazon_s3_regex(AMAZON_S3_REGEX, boost::regex::perl);
 
-void S3LineOutputter::writeLine(std::string &line) {
+void S3LineOutputter::writeLine(const std::string &line) {
     boost::cmatch what;
 
     assert(!line.empty());
@@ -48,7 +48,7 @@ void S3LineOutputter::writeLine(std::string &line) {
     }
 }
 
-void DirectLineOutputter::writeLine(std::string &line) {
+void DirectLineOutputter::writeLine(const std::string &line) {
     assert(!line.empty());
     std::cout << line << std::endl;
 }
@@ -57,6 +57,6 @@ void DirectLineOutputter::writeLine(std::string &line) {
 LineOutputter *LineOutputter::forLine(const std::string &line) {
     return (boost::regex_search(line.begin(), line.end(),
                                 amazon_s3_regex)
-            ? (LineOutputter*)new S3LineOutputter()
-            : (LineOutputter*)new DirectLineOutputter());
+            ? static_cast<LineOutputter*>(new S3LineOutputter)
+            : static_cast<LineOutputter*>(new DirectLineOutputter));
 }

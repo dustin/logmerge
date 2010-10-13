@@ -26,7 +26,7 @@
 
 class LineOutputter {
 public:
-    virtual void writeLine(std::string &s) = 0;
+    virtual void writeLine(const std::string &s) = 0;
     virtual ~LineOutputter() {};
 
     static LineOutputter *forLine(const std::string &s);
@@ -34,12 +34,12 @@ public:
 
 class DirectLineOutputter : public LineOutputter {
  public:
-    void writeLine(std::string &s);
+    void writeLine(const std::string &s);
 };
 
 class S3LineOutputter : public LineOutputter {
  public:
-    void writeLine(std::string &s);
+    void writeLine(const std::string &s);
 };
 
 class LogfileError : public std::runtime_error {
