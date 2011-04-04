@@ -23,6 +23,7 @@
 #include <boost/iostreams/device/file.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+#include <boost/iostreams/filter/bzip2.hpp>
 
 #include "logfiles.h"
 
@@ -50,9 +51,18 @@ void LogFile::openLogfile()
     }
     file->seekg(0, std::ios_base::beg);
 
+    bool isbzip = file->get() == 'B' && file->get() == 'Z' && file->get() == 'h';
+    if (file->fail()) {
+        throw LogfileError("Error trying to read magic");
+    }
+    file->seekg(0, std::ios_base::beg);
+
     instream = new io::filtering_istream();
     if (isgzip) {
         instream->push(io::gzip_decompressor());
+    }
+    if (isbzip) {
+        instream->push(io::bzip2_decompressor());
     }
     instream->push(*file);
 
