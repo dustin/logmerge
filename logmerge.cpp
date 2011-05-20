@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef USE_ASSERT
 # include <assert.h>
@@ -63,8 +64,10 @@ static void logmerge::initLogfiles(log_queue& queue, int argc, char **argv)
         }
     } else {
         char buf[8192];
-        std::cerr << "No logfiles given, accepting list from stdin"
-                  << std::endl;
+        if (isatty(STDIN_FILENO)) {
+            std::cerr << "No logfiles given, accepting list from stdin"
+                      << std::endl;
+        }
         while(fgets((char*)&buf, sizeof(buf)-1, stdin)) {
             buf[strlen(buf)-1]=0x00;
             initLogfile(queue, buf);

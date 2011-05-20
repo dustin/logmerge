@@ -36,8 +36,6 @@ void LogFile::openLogfile()
 {
     assert(instream == NULL);
 
-    std::cerr << "*** Opening ``" << filename << "''" << std::endl;
-
     file = new std::ifstream(filename.c_str(),
                              std::ios_base::in | std::ios_base::binary);
     if (file->fail()) {
@@ -203,7 +201,6 @@ bool LogFile::nextLine()
     if(instream == NULL) {
         openLogfile();
         /* Recurse to skip a line */
-        std::cerr << "*** Recursing..." << std::endl;
         rv=nextLine();
         assert(rv);
     }
@@ -226,8 +223,6 @@ void LogFile::writeLine()
 
 void LogFile::closeLogfile()
 {
-    std::cerr << "*** Closing ``" << filename << "''" << std::endl;
-
     delete instream;
     instream = NULL;
 
@@ -245,8 +240,6 @@ void LogFile::closeLogfile()
  */
 LogFile::~LogFile()
 {
-    std::cerr << "** Destroying ``" << filename << "''" << std::endl;
-
     if(instream != NULL) {
         closeLogfile();
     }
