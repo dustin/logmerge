@@ -17,7 +17,7 @@
 
       devShells = eachSystem (system: let pkgs = import nixpkgs { inherit system; }; in {
         default = pkgs.mkShell {
-          buildInputs = [ pkgs.gnumake pkgs.boost ];
+          buildInputs = [ pkgs.gnumake pkgs.boost pkgs.zig ];
         };
       });
     };
