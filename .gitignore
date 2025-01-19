@@ -5,3 +5,5 @@ logmerge
 config.log
 *~
 #~
+.DS_Store
+.direnv
