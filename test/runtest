@@ -7,6 +7,7 @@ rm -f got
 if ! cmp expected got
 then
 	echo "Failed with files as args."
+	ls -l ../logmerge got ../samples/*
 	exit 1
 fi
 

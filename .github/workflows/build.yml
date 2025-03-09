@@ -8,20 +8,24 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libbz2-dev
+
     - name: Build Boost
       id: boost
       uses: mickem/build-boost@v1
       with:
-        version: 1.71.0
+        version: 1.87.0
         libraries: iostreams filesystem regex
         platform: x64
         configuration: Release
+
     - name: make
-      run: make
+      run: make CXXFLAGS="-I${{steps.boost.outputs.root}}" LDFLAGS="-L${{steps.boost.outputs.librarydir}}"
+
     - name: test
       run: make test
