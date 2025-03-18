@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/sh -e
 
 rm -f got
 
-../logmerge ../samples/* > got 2> /dev/null
+../logmerge ../samples/* > got
 
 if ! cmp expected got
 then
