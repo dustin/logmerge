@@ -28,4 +28,6 @@ jobs:
       run: make CXXFLAGS="-I${{steps.boost.outputs.root}}" LDFLAGS="-L${{steps.boost.outputs.librarydir}}"
 
     - name: test
-      run: make test
+      run: |
+        export LD_LIBRARY_PATH="${{steps.boost.outputs.librarydir}}:$LD_LIBRARY_PATH"
+        make test
