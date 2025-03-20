@@ -1,6 +1,11 @@
 const std = @import("std");
 const logmerge = @import("root.zig");
 
+fn output(w: std.io.AnyWriter, line: []const u8) !void {
+    try w.writeAll(line);
+    try w.writeAll("\n");
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
@@ -21,10 +26,5 @@ pub fn main() !void {
         bw.flush() catch {};
     }
 
-    while (true) {
-        const lf = logs.next() orelse break;
-        try stdout.writeAll(lf.current);
-        try stdout.writeAll("\n");
-        try logs.restore(lf);
-    }
+    try logs.run(stdout.any(), output);
 }
