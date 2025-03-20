@@ -2,21 +2,14 @@ const std = @import("std");
 const zeit = @import("zeit");
 const testing = std.testing;
 
-var monthMap = std.static_string_map.StaticStringMap(u8).initComptime(.{ .{ "Jan", 1 }, .{ "Feb", 2 }, .{ "Mar", 3 }, .{ "Apr", 4 }, .{ "May", 5 }, .{ "Jun", 6 }, .{ "Jul", 7 }, .{ "Aug", 8 }, .{ "Sep", 9 }, .{ "Oct", 10 }, .{ "Nov", 11 }, .{ "Dec", 12 } });
-
-var monthMapZ = std.static_string_map.StaticStringMap(zeit.Month).initComptime(.{ .{ "Jan", .jan }, .{ "Feb", .feb }, .{ "Mar", .mar }, .{ "Apr", .apr }, .{ "May", .may }, .{ "Jun", .jun }, .{ "Jul", .jul }, .{ "Aug", .aug }, .{ "Sep", .sep }, .{ "Oct", .oct }, .{ "Nov", .nov }, .{ "Dec", .dec } });
+var monthMap = std.static_string_map.StaticStringMap(zeit.Month).initComptime(.{ .{ "Jan", .jan }, .{ "Feb", .feb }, .{ "Mar", .mar }, .{ "Apr", .apr }, .{ "May", .may }, .{ "Jun", .jun }, .{ "Jul", .jul }, .{ "Aug", .aug }, .{ "Sep", .sep }, .{ "Oct", .oct }, .{ "Nov", .nov }, .{ "Dec", .dec } });
 
 test "monthMapping" {
     const months = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-    const ixes = [_]u8{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
-    for (months, ixes) |month, ix| {
-        try testing.expectEqual(ix, monthMap.get(month));
-    }
-    try testing.expectEqual(null, monthMap.get("Invalid"));
 
     const zms = [_]zeit.Month{ .jan, .feb, .mar, .apr, .may, .jun, .jul, .aug, .sep, .oct, .nov, .dec };
     for (months, zms) |month, ix| {
-        try testing.expectEqual(ix, monthMapZ.get(month));
+        try testing.expectEqual(ix, monthMap.get(month));
     }
     try testing.expectEqual(null, monthMap.get("Invalid"));
 }
@@ -41,7 +34,7 @@ fn parseLogTS(line: []const u8) ?i64 {
 
     return (zeit.Time{
         .year = parseNum(i32, line[start + 8 .. start + 8 + 4]) orelse return null,
-        .month = monthMapZ.get(line[start + 4 .. start + 4 + 3]) orelse return null,
+        .month = monthMap.get(line[start + 4 .. start + 4 + 3]) orelse return null,
         .day = parseNum(u5, line[start + 1 .. start + 1 + 2]) orelse return null,
         .hour = parseNum(u5, line[start + 13 .. start + 13 + 2]) orelse return null,
         .minute = parseNum(u6, line[start + 16 .. start + 16 + 2]) orelse return null,
