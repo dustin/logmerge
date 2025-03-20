@@ -192,6 +192,14 @@ pub const LogFiles = struct {
         }
         self.files.deinit();
     }
+
+    pub fn run(self: *LogFiles, ctx: anytype, cb: anytype) anyerror!void {
+        while (true) {
+            const lf = self.next() orelse break;
+            try cb(ctx, lf.current);
+            try self.restore(lf);
+        }
+    }
 };
 
 pub fn openFiles(alloc: std.mem.Allocator, filenames: *std.process.ArgIterator) !LogFiles {
