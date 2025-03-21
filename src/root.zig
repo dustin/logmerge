@@ -82,8 +82,10 @@ pub const LogFile = struct {
         }
     }
 
-    pub fn deinit(self: *LogFile) void {
+    pub fn deinit(self: *LogFile, alloc: std.mem.Allocator) void {
         self.close();
+        alloc.free(self.filename);
+        self.filename = undefined;
     }
 
     pub fn compare(_: void, a: *LogFile, b: *LogFile) std.math.Order {
@@ -131,7 +133,7 @@ pub const LogFile = struct {
     }
 };
 
-pub fn openLogFile(alloc: std.mem.Allocator, filename: [:0]const u8) !*LogFile {
+pub fn openLogFile(alloc: std.mem.Allocator, filename: []const u8) !*LogFile {
     const file = try std.fs.cwd().openFile(filename, .{});
     errdefer |err| {
         std.debug.print("Failed to open {s}: {any}\n", .{ filename, err });
@@ -141,7 +143,8 @@ pub fn openLogFile(alloc: std.mem.Allocator, filename: [:0]const u8) !*LogFile {
     var lf = try alloc.create(LogFile);
     errdefer alloc.destroy(lf);
 
-    lf.filename = filename;
+    lf.filename = try alloc.dupe(u8, filename);
+    errdefer alloc.free(lf.filename);
     lf.next_timestamp = 0;
     lf.file = file;
     lf.abstraction = null;
@@ -171,7 +174,7 @@ pub const LogFiles = struct {
 
     pub fn restore(self: *LogFiles, lf: *LogFile) !void {
         if (!try lf.next()) {
-            lf.deinit();
+            lf.deinit(self.alloc);
             self.alloc.destroy(lf);
             return;
         }
@@ -180,7 +183,7 @@ pub const LogFiles = struct {
 
     pub fn deinit(self: *LogFiles) void {
         while (self.files.removeOrNull()) |lf| {
-            lf.deinit();
+            lf.deinit(self.alloc);
             self.alloc.destroy(lf);
         }
         self.files.deinit();
@@ -203,11 +206,30 @@ pub fn openFiles(alloc: std.mem.Allocator, filenames: *std.process.ArgIterator) 
     errdefer lfs.deinit();
 
     while (filenames.next()) |filename| {
-        const lf = openLogFile(alloc, filename) catch |err| switch (err) {
-            error.BadFile => continue, // skip this one
-            else => return err,
-        };
-        try lfs.files.add(lf);
+        if (std.mem.eql(u8, filename, "-")) {
+            var buf: [8192]u8 = undefined;
+            var stdin = std.io.getStdIn().reader();
+            while (true) {
+                const fnam = stdin.readUntilDelimiterOrEof(&buf, '\n') catch |err| {
+                    std.debug.print("Failed to read from stdin: {any}\n", .{err});
+                    continue;
+                } orelse break;
+                const lf = openLogFile(alloc, fnam) catch |err| switch (err) {
+                    error.BadFile => continue, // skip this one
+                    else => return err,
+                };
+                try lfs.files.add(lf);
+            }
+
+            // will do this
+            continue; // skip stdin
+        } else {
+            const lf = openLogFile(alloc, filename) catch |err| switch (err) {
+                error.BadFile => continue, // skip this one
+                else => return err,
+            };
+            try lfs.files.add(lf);
+        }
     }
 
     return lfs;
