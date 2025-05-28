@@ -7,3 +7,5 @@ config.log
 #~
 .DS_Store
 .direnv
+.zig-cache
+zig-out
