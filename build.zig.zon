@@ -17,7 +17,7 @@
     // This field is optional.
     // This is currently advisory only; Zig does not yet do anything
     // with this value.
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.15.0",
 
     // This field is optional.
     // Each dependency must either provide a `url` and `hash`, or a `path`.
@@ -26,8 +26,8 @@
     // internet connectivity.
     .dependencies = .{
         .zeit = .{
-            .url = "https://github.com/rockorager/zeit/archive/refs/tags/v0.6.0.tar.gz",
-            .hash = "zeit-0.0.0-5I6bk_pZAgB03N1p1GmVOZ--gOFwwQSRKj1UXb5tnaKS",
+            .url = "https://github.com/rockorager/zeit/archive/refs/heads/zig-0.15.zip",
+            .hash = "zeit-0.6.0-5I6bk0J9AgCVa0nnyL0lNY9Xa9F68hHq-ZarhuXNV-Jb",
         },
     },
     .paths = .{

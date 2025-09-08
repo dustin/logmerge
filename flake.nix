@@ -3,7 +3,7 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-  outputs = { self, nixpkgs }: 
+  outputs = { self, nixpkgs }:
     let
       eachSystem = nixpkgs.lib.genAttrs nixpkgs.lib.systems.flakeExposed;
     in {
@@ -17,7 +17,7 @@
 
       devShells = eachSystem (system: let pkgs = import nixpkgs { inherit system; }; in {
         default = pkgs.mkShell {
-          buildInputs = [ pkgs.gnumake pkgs.boost pkgs.zig ];
+          buildInputs = [ pkgs.gnumake pkgs.boost pkgs.zig_0_15 ];
         };
       });
     };

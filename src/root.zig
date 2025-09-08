@@ -55,13 +55,14 @@ test "parseLogTS" {
 const bufSize = 8192;
 
 const Abstraction = union(enum) {
-    GZ: std.compress.gzip.Decompressor(std.fs.File.Reader),
-    Plain: std.fs.File,
+    var buf: [32768]u8 = undefined;
+    GZ: std.compress.flate.Decompress,
+    Plain: *std.Io.Reader,
 
-    pub fn reader(self: *Abstraction) std.io.AnyReader {
+    pub fn reader(self: *Abstraction) *std.Io.Reader {
         return switch (self.*) {
-            .GZ => self.GZ.reader().any(),
-            .Plain => self.Plain.reader().any(),
+            .GZ => &self.GZ.reader,
+            .Plain => self.Plain,
         };
     }
 };
@@ -70,8 +71,11 @@ pub const LogFile = struct {
     filename: []const u8,
     next_timestamp: i64,
     file: ?std.fs.File,
+    fReader: std.fs.File.Reader,
+    fRi: *std.Io.Reader,
     abstraction: ?Abstraction,
     current: []u8,
+    zbuf: [bufSize]u8,
     buf: [bufSize]u8,
 
     pub fn close(self: *LogFile) void {
@@ -92,37 +96,42 @@ pub const LogFile = struct {
         return std.math.order(a.next_timestamp, b.next_timestamp);
     }
 
-    fn is_gz(_: *LogFile, f: std.fs.File) bool {
+    fn is_gz(self: *LogFile) bool {
         defer {
-            f.seekTo(0) catch {};
+            self.file.?.seekTo(0) catch {};
         }
         const magic = [_]u8{ 0x1f, 0x8b };
-        var reader = f.reader();
         var buf: [2]u8 = undefined;
-        _ = reader.readAll(&buf) catch |err| {
+        self.fRi.readSliceAll(&buf) catch |err| {
             std.debug.print("Failed to read from file: {any}\n", .{err});
             return false;
         };
         return std.meta.eql(buf, magic);
     }
 
-    fn abstract(self: *LogFile, f: std.fs.File) !Abstraction {
-        if (self.is_gz(f)) {
-            return .{ .GZ = std.compress.gzip.decompressor(f.reader()) };
+    fn abstract(self: *LogFile) !Abstraction {
+        if (self.is_gz()) {
+            return .{ .GZ = std.compress.flate.Decompress.init(self.fRi, .gzip, &self.zbuf) };
         }
-        return .{ .Plain = f };
+        return .{ .Plain = self.fRi };
     }
 
     pub fn next(self: *LogFile) !bool {
         if (self.file == null) {
             self.file = try std.fs.cwd().openFile(self.filename, .{});
             errdefer self.close();
+            self.fReader = self.file.?.reader(&self.buf);
+            self.fRi = &self.fReader.interface;
+            // self.zbuf = try self.fRi.allocRemaining(self.allocator, 1024);
 
-            self.abstraction = try self.abstract(self.file.?);
-            _ = try self.abstraction.?.reader().readUntilDelimiterOrEof(&self.buf, '\n');
+            self.abstraction = try self.abstract();
+            _ = try self.abstraction.?.reader().takeDelimiterExclusive('\n');
         }
 
-        self.current = try self.abstraction.?.reader().readUntilDelimiterOrEof(&self.buf, '\n') orelse return false;
+        self.current = self.abstraction.?.reader().takeDelimiterExclusive('\n') catch |err| {
+            std.debug.print("Failed to read from file: {any}\n", .{err});
+            return false;
+        };
 
         if (self.current.len == 0) {
             self.close();
@@ -151,12 +160,11 @@ pub fn openLogFile(alloc: std.mem.Allocator, filename: []const u8) !*LogFile {
     lf.buf = @as([bufSize]u8, @splat(0));
     lf.current = undefined;
 
-    var abs = try lf.abstract(file);
-    const current = abs.reader().readUntilDelimiterOrEof(&lf.buf, '\n') catch |err| {
+    var abs = try lf.abstract();
+    lf.current = abs.reader().takeDelimiterExclusive('\n') catch |err| {
         std.debug.print("Failed to read from {s}: {any}\n", .{ filename, err });
         return error.BadFile;
     };
-    lf.current = current orelse return error.BadFile;
 
     lf.next_timestamp = parseLogTS(lf.current) orelse return error.BadTimestamp;
     lf.close();
@@ -208,21 +216,22 @@ pub fn openFiles(alloc: std.mem.Allocator, filenames: *std.process.ArgIterator) 
     while (filenames.next()) |filename| {
         if (std.mem.eql(u8, filename, "-")) {
             var buf: [8192]u8 = undefined;
-            var stdin = std.io.getStdIn().reader();
-            while (true) {
-                const fnam = stdin.readUntilDelimiterOrEof(&buf, '\n') catch |err| {
-                    std.debug.print("Failed to read from stdin: {any}\n", .{err});
-                    continue;
-                } orelse break;
+            var stdin = std.fs.File.stdin().reader(&buf);
+            var ri = &stdin.interface;
+            while (ri.takeDelimiterExclusive(',')) |fnam| {
                 const lf = openLogFile(alloc, fnam) catch |err| switch (err) {
                     error.BadFile => continue, // skip this one
                     else => return err,
                 };
                 try lfs.files.add(lf);
+            } else |err| switch (err) {
+                error.EndOfStream => {},
+                error.StreamTooLong,
+                error.ReadFailed,
+                => |e| {
+                    return e;
+                },
             }
-
-            // will do this
-            continue; // skip stdin
         } else {
             const lf = openLogFile(alloc, filename) catch |err| switch (err) {
                 error.BadFile => continue, // skip this one
